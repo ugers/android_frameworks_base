@@ -1805,6 +1805,8 @@ public abstract class Context {
      * @see android.net.ConnectivityManager
      * @see #WIFI_SERVICE
      * @see android.net.wifi.WifiManager
+     * @see #ETHERNET_SERVICE
+     * @see android.net.ethernet.EthernetManager
      * @see #AUDIO_SERVICE
      * @see android.media.AudioManager
      * @see #MEDIA_ROUTER_SERVICE
@@ -2060,6 +2062,12 @@ public abstract class Context {
      * @see android.net.wifi.p2p.WifiP2pManager
      */
     public static final String WIFI_P2P_SERVICE = "wifip2p";
+    /**
+     *
+     * @see #getSystemService
+     * @see android.net.ethernet.EthernetManager
+     */
+    public static final String ETHERNET_SERVICE = "ethernet";
 
     /**
      * Use with {@link #getSystemService} to retrieve a {@link
@@ -2100,6 +2108,26 @@ public abstract class Context {
      * @see android.telephony.TelephonyManager
      */
     public static final String TELEPHONY_SERVICE = "phone";
+
+	/**
+     * Use with {@link #getSystemService} to retrieve a
+     * {@link android.telephony.TelephonyManager} for handling management the
+     * display features of the device.
+     *
+     * @see #getSystemService
+     * @see android.view.DisplayManager
+     */
+    public static final String DISPLAY_SERVICE_AW = "display_aw";
+
+    	/**
+     * Use with {@link #getSystemService} to retrieve a
+     * {@link android.telephony.TelephonyManager} for handling management the
+     * display features of the device.
+     *
+     * @see #getSystemService
+     * @see android.view.DisplayManager
+     */
+    public static final String WIFIDISPLAY_SERVICE = "wifidisplay";
 
     /**
      * Use with {@link #getSystemService} to retrieve a

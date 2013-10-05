@@ -99,6 +99,7 @@ import com.android.systemui.statusbar.SignalClusterTextView;
 import com.android.systemui.statusbar.SignalClusterView;
 import com.android.systemui.statusbar.StatusBarIconView;
 import com.android.systemui.statusbar.policy.BatteryController;
+import com.android.systemui.statusbar.policy.DisplayController;
 import com.android.systemui.statusbar.policy.CircleBattery;
 import com.android.systemui.statusbar.policy.CircleDockBattery;
 import com.android.systemui.statusbar.policy.Clock;
@@ -170,6 +171,7 @@ public class PhoneStatusBar extends BaseStatusBar {
     DockBatteryController mDockBatteryController;
     LocationController mLocationController;
     NetworkController mNetworkController;
+    DisplayController mDisplayController;
 
     private boolean mHasDockBattery;
 
@@ -621,6 +623,7 @@ public class PhoneStatusBar extends BaseStatusBar {
         // Other icons
         mLocationController = new LocationController(mContext); // will post a notification
         mBatteryController = new BatteryController(mContext);
+        mDisplayController = new DisplayController(mContext);
         mBatteryController.addIconView((ImageView)mStatusBarView.findViewById(R.id.battery));
         mBatteryController.addLabelView((TextView)mStatusBarView.findViewById(R.id.battery_text));
 

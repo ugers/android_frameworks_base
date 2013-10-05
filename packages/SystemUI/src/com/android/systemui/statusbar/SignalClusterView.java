@@ -50,16 +50,16 @@ public class SignalClusterView
     private int mSignalClusterStyle;
     private boolean mWifiVisible = false;
     private int mWifiStrengthId = 0, mWifiActivityId = 0;
+    private boolean mEthernetVisible = false;
+    private int mEthernetStateId = 0, mEthernetActivityId = 0;
     private boolean mMobileVisible = false;
     private int mMobileStrengthId = 0, mMobileActivityId = 0, mMobileTypeId = 0;
     private boolean mIsAirplaneMode = false;
     private int mAirplaneIconId = 0;
-    private boolean mEtherVisible = false;
-    private int mEtherIconId = 0;
-    private String mWifiDescription, mMobileDescription, mMobileTypeDescription, mEtherDescription;
+    private String mWifiDescription, mMobileDescription, mMobileTypeDescription, mEthernetDescription;
 
-    ViewGroup mWifiGroup, mMobileGroup;
-    ImageView mWifi, mMobile, mWifiActivity, mMobileActivity, mMobileType, mAirplane, mEther;
+    ViewGroup mWifiGroup, mMobileGroup, mEthernetGroup;
+    ImageView mWifi, mMobile, mWifiActivity, mMobileActivity, mMobileType, mAirplane, mEthernet;
     View mSpacer;
 
     Handler mHandler;
@@ -121,7 +121,8 @@ public class SignalClusterView
         mMobileType     = (ImageView) findViewById(R.id.mobile_type);
         mSpacer         =             findViewById(R.id.spacer);
         mAirplane       = (ImageView) findViewById(R.id.airplane);
-        mEther          = (ImageView) findViewById(R.id.ethernet);
+        mEthernetGroup  = (ViewGroup) findViewById(R.id.ethernet_combo);
+        mEthernet       = (ImageView) findViewById(R.id.ethernet_state);
 
         apply();
     }
@@ -139,7 +140,6 @@ public class SignalClusterView
         mMobileType     = null;
         mSpacer         = null;
         mAirplane       = null;
-        mEther          = null;
 
         super.onDetachedFromWindow();
     }
@@ -168,19 +168,19 @@ public class SignalClusterView
         apply();
     }
 
+    public void setEthernetIndicators(boolean visible,int strengthIcon,int activityIcon,
+  String contentDescription){
+  mEthernetVisible = visible;
+  mEthernetStateId = strengthIcon;
+  mEthernetActivityId = activityIcon;
+  mEthernetDescription = contentDescription;
+  apply();
+    }
+
     @Override
     public void setIsAirplaneMode(boolean is, int airplaneIconId) {
         mIsAirplaneMode = is;
         mAirplaneIconId = airplaneIconId;
-
-        apply();
-    }
-
-    @Override
-    public void setEtherIndicators(boolean visible, int etherIcon, String contentDescription) {
-        mEtherVisible = visible;
-        mEtherIconId = etherIcon;
-        mEtherDescription = contentDescription;
 
         apply();
     }
@@ -209,6 +209,14 @@ public class SignalClusterView
             mWifiGroup.setVisibility(View.GONE);
         }
 
+  if(mEthernetVisible){
+    mEthernetGroup.setVisibility(View.VISIBLE);
+    mEthernet.setImageResource(mEthernetStateId);
+    mEthernetGroup.setContentDescription(mEthernetDescription);
+  } else {
+    mEthernetGroup.setVisibility(View.GONE);
+  }
+
         if (DEBUG) Slog.d(TAG,
                 String.format("wifi: %s sig=%d act=%d",
                     (mWifiVisible ? "VISIBLE" : "GONE"),
@@ -231,15 +239,7 @@ public class SignalClusterView
             mAirplane.setVisibility(View.GONE);
         }
 
-        if (mEtherVisible) {
-            mEther.setVisibility(View.VISIBLE);
-            mEther.setImageResource(mEtherIconId);
-            mEther.setContentDescription(mEtherDescription);
-        } else {
-            mEther.setVisibility(View.GONE);
-        }
-
-        if (mMobileVisible && mWifiVisible && mIsAirplaneMode) {
+        if (mMobileVisible && (mWifiVisible || mEthernetVisible) && mIsAirplaneMode) {
             mSpacer.setVisibility(View.INVISIBLE);
         } else {
             mSpacer.setVisibility(View.GONE);
@@ -251,7 +251,7 @@ public class SignalClusterView
                     mMobileStrengthId, mMobileActivityId, mMobileTypeId));
 
         mMobileType.setVisibility(
-                !mWifiVisible ? View.VISIBLE : View.GONE);
+                !(mWifiVisible || mEthernetVisible) ? View.VISIBLE : View.GONE);
 
         updateSettings();
     }

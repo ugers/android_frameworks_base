@@ -32,5 +32,6 @@ public interface XmlResourceParser extends XmlPullParser, AttributeSet {
      * longer value after this call.
      */
     public void close();
+  public String getXmlPath();
 }
 

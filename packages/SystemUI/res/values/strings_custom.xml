@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ethernet string  -->
+    <string name="ethernet_link">Ethernet connect to network</string>
+    <string name="ethernet_description">Ethernet</string>
+
+    <!-- notify devices mounted -->
+  <string name="usb_mounted_title">usb is mounted</string>
+  <string name="usb_mounted_message">usb is mounted</string>
+  <string name="sd_mounted_title">sdcard is mounted</string>
+  <string name="sd_mounted_message">sdcard is mounted</string>
+  
+  <string name="usb_nomedia_notification_title">Removed USB storage</string>
+  <string name="usb_nomedia_notification_message">USB storage removed. Insert new media.</string>
+  
+  <string name="usb_badremoval_notification_title">USB storage unexpectedly removed</string>
+  <string name="usb_badremoval_notification_message">Unmount USB storage before removing to avoid data loss.</string>
+
+    <!-- add by kinier: the usb port state notification message  --> 
+    <string name="usb_port_title">Low voltage or power</string>
+    <string name="usb_port_message">Low voltage or power:Close the USB port</string>
+    <string name="usb_port_hint">USB device does not work</string>
+
+</resources>

@@ -109,6 +109,7 @@ import android.view.CompatibilityInfoHolder;
 import android.view.ContextThemeWrapper;
 import android.view.Display;
 import android.view.WindowManagerImpl;
+import android.view.DisplayManagerAw;
 import android.view.accessibility.AccessibilityManager;
 import android.view.inputmethod.InputMethodManager;
 import android.view.textservice.TextServicesManager;
@@ -464,7 +465,8 @@ class ContextImpl extends Context {
 
         registerService(SENSOR_SERVICE, new ServiceFetcher() {
                 public Object createService(ContextImpl ctx) {
-                    return new SystemSensorManager(ctx.mMainThread.getHandler().getLooper());
+                  //  return new SystemSensorManager(ctx.mMainThread.getHandler().getLooper());
+                  return new SystemSensorManager(ctx.getOuterContext(),ctx.mMainThread.getHandler().getLooper());
                 }});
 
         registerService(STATUS_BAR_SERVICE, new ServiceFetcher() {
@@ -529,6 +531,11 @@ class ContextImpl extends Context {
                     IBinder b = ServiceManager.getService(WIFI_P2P_SERVICE);
                     IWifiP2pManager service = IWifiP2pManager.Stub.asInterface(b);
                     return new WifiP2pManager(service);
+                }});
+
+        registerService(DISPLAY_SERVICE_AW, new ServiceFetcher() {
+                public Object createService(ContextImpl ctx) {
+                    return new DisplayManagerAw();
                 }});
 
         registerService(WINDOW_SERVICE, new ServiceFetcher() {

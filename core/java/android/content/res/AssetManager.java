@@ -475,7 +475,28 @@ public final class AssetManager {
     public final XmlResourceParser openXmlResourceParser(int cookie,
             String fileName) throws IOException {
         XmlBlock block = openXmlBlockAsset(cookie, fileName);
-        XmlResourceParser rp = block.newParser();
+
+		XmlResourceParser rp = null;
+		String name = null;
+		try 
+		{
+
+			name = getCookieName(cookie);
+			
+		}catch(Exception e)
+		{
+			name = null;
+		}
+			
+		if ( name != null )
+		{
+			rp = block.newParser( name + Resources.path_separate + fileName );
+		}
+		else
+		{
+			rp = block.newParser( fileName );
+		}
+
         block.close();
         return rp;
     }

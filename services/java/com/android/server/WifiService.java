@@ -1058,6 +1058,7 @@ public class WifiService extends IWifiManager.Stub {
                     Slog.d(TAG, "ACTION_SCREEN_ON");
                 }
                 mAlarmManager.cancel(mIdleIntent);
+                mWifiStateMachine.releaseKeepaliveLock();
                 mScreenOff = false;
                 evaluateTrafficStatsPolling();
                 setDeviceIdleAndUpdateWifi(false);
@@ -1082,6 +1083,8 @@ public class WifiService extends IWifiManager.Stub {
                     } else {
                         setDeviceIdleAndUpdateWifi(true);
                     }
+                } else {
+                    mWifiStateMachine.acquireKeepaliveLock();
                 }
             } else if (action.equals(ACTION_DEVICE_IDLE)) {
                 setDeviceIdleAndUpdateWifi(true);

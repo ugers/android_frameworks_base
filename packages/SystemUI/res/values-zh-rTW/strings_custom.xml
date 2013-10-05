@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources> 
+    <string name="usb_mounted_title">"USB設備接入"</string>
+  <string name="usb_mounted_message">"USB設備接入"</string>
+  <string name="sd_mounted_title">"SD卡設備接入"</string>
+  <string name="sd_mounted_message">"SD卡設備接入"</string>
+
+    <!-- add by kinier: the usb port state notification message  --> 
+    <string name="usb_port_title">電壓或電量過低</string>
+    <string name="usb_port_message">電壓或電量過低:關閉USB端口</string>
+    <string name="usb_port_hint">USB設備不能使用</string>
+
+</resources>

@@ -2022,6 +2022,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             loadStringSetting(stmt, Settings.Secure.LOCATION_PROVIDERS_ALLOWED,
                     R.string.def_location_providers_allowed);
 
+            loadBooleanSetting(stmt, Settings.Secure.ETHERNET_ON,
+                    R.bool.def_ethernet_on);
+
+            loadBooleanSetting(stmt, Settings.Secure.ETHERNET_MODE,
+                    R.bool.def_ethernet_mode);
+
             String wifiWatchList = SystemProperties.get("ro.com.android.wifi-watchlist");
             if (!TextUtils.isEmpty(wifiWatchList)) {
                 loadSetting(stmt, Settings.Secure.WIFI_WATCHDOG_WATCH_LIST, wifiWatchList);

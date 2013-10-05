@@ -27,6 +27,7 @@ import android.os.SystemProperties;
 import android.text.TextUtils;
 
 import java.util.Locale;
+import android.os.*;
 
 /**
  * This class describes all device configuration information that can
@@ -751,7 +752,17 @@ public final class Configuration implements Parcelable, Comparable<Configuration
      * Set this object to the system defaults.
      */
     public void setToDefaults() {
-        fontScale = 1;
+
+    String scale = Build.DEFAULT_FONTSCALE;
+    if ( scale.equalsIgnoreCase( Build.UNKNOWN ) == false )
+    {
+      fontScale = Float.valueOf( Build.DEFAULT_FONTSCALE ).floatValue();
+    }
+    else
+    {
+      fontScale = 1.0f;
+    }
+
         mcc = mnc = 0;
         locale = null;
         userSetLocale = false;

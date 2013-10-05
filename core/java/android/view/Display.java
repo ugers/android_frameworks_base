@@ -532,6 +532,34 @@ public final class Display {
         }
     }
 
+	/**     
+	* Gets the raw width of the display, in pixels.     
+	* <p>     * The size is adjusted based on the current rotation of the display.     
+	* </p>     * @hide     
+	*/    
+	public int getRawWidth() 
+	{        
+		int w = mDisplayInfo.logicalWidth;        
+//		Log.v(  TAG, "Returning raw display width: " + w);
+		
+		return w;    
+	}    
+
+
+	/**     
+	* Gets the raw height of the display, in pixels.     
+	* <p>     * The size is adjusted based on the current rotation of the display.     
+	* </p>     * @hide     
+	*/
+	public int getRawHeight() 
+	{        
+		int h = mDisplayInfo.logicalHeight;        
+//		Log.v( TAG, "Returning raw display height: " + h);
+		
+		return h;    
+	}    
+
+
     /**
      * Gets display metrics based on the real size of this display.
      * <p>

@@ -433,6 +433,8 @@ public class SensorEvent {
 
     public final float[] values;
 
+    public final float[] originalValue;
+
     /**
      * The sensor that generated this event. See
      * {@link android.hardware.SensorManager SensorManager} for details.
@@ -454,5 +456,6 @@ public class SensorEvent {
 
     SensorEvent(int size) {
         values = new float[size];
+	originalValue = new float[size];
     }
 }

@@ -16,6 +16,11 @@
 
 package com.android.systemui.statusbar.tablet;
 
+import java.util.Timer; //
+import java.util.TimerTask; // 
+import android.os.Messenger; //
+import android.content.ComponentName; // 
+import android.content.ServiceConnection; //
 import android.animation.LayoutTransition;
 import android.animation.ObjectAnimator;
 import android.app.ActivityManager;
@@ -74,6 +79,7 @@ import com.android.systemui.statusbar.NotificationData.Entry;
 import com.android.systemui.statusbar.SignalClusterView;
 import com.android.systemui.statusbar.StatusBarIconView;
 import com.android.systemui.statusbar.policy.BatteryController;
+import com.android.systemui.statusbar.policy.DisplayController;
 import com.android.systemui.statusbar.policy.BluetoothController;
 import com.android.systemui.statusbar.policy.CircleBattery;
 import com.android.systemui.statusbar.policy.Clock;
@@ -86,6 +92,7 @@ import com.android.systemui.statusbar.policy.Prefs;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import android.util.Log;
 
 public class TabletStatusBar extends BaseStatusBar implements
         InputMethodsPanel.OnHardKeyboardEnabledChangeListener {
@@ -161,6 +168,7 @@ public class TabletStatusBar extends BaseStatusBar implements
     LocationController mLocationController;
     NetworkController mNetworkController;
     DoNotDisturb mDoNotDisturb;
+    DisplayController mDisplayController;
 
     ViewGroup mBarContents;
 
@@ -555,6 +563,7 @@ public class TabletStatusBar extends BaseStatusBar implements
         mDoNotDisturb = new DoNotDisturb(mContext);
 
         mBatteryController = new BatteryController(mContext);
+        mDisplayController = new DisplayController(mContext);
         mBatteryController.addIconView((ImageView)sb.findViewById(R.id.battery));
 
         final CircleBattery circleBattery =

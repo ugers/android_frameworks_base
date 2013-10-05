@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- ethernet string  -->
+  <string name="ethernet_link">以太网连接到网络</string>
+  <string name="ethernet_description">以太网络</string>
+   <string name="usb_mounted_title">"USB设备接入"</string>
+  <string name="usb_mounted_message">"USB设备接入"</string>
+  <string name="sd_mounted_title">"SD卡设备接入"</string>
+  <string name="sd_mounted_message">"SD卡设备接入"</string>
+  
+  <string name="usb_nomedia_notification_title">"已移除 USB 设备"</string>
+  <string name="usb_nomedia_notification_message">"USB 设备已移除。"</string>
+    <string name="usb_badremoval_notification_title">"USB 存储设备已意外移除"</string>
+  <string name="usb_badremoval_notification_message">"请先卸载 USB 存储设备，再将其移除，以防数据丢失。"</string>
+
+    <!-- add by kinier: the usb port state notification message  --> 
+    <string name="usb_port_title">电压或电量过低</string>
+    <string name="usb_port_message">电压或电量过低:关闭USB端口</string>
+    <string name="usb_port_hint">USB设备不能使用</string>
+
+</resources>

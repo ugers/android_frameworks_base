@@ -674,6 +674,8 @@ public class View implements Drawable.Callback, KeyEvent.Callback,
         AccessibilityEventSource {
     private static final boolean DBG = false;
 
+  public String xmlPath = null;
+  public Context mInflaterContext = null;
     /**
      * The logging tag used by this class with android.util.Log.
      */

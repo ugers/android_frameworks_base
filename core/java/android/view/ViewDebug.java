@@ -46,6 +46,10 @@ import java.util.HashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import android.graphics.drawable.*;
+import android.widget.*;
+import com.android.internal.view.menu.*;
+import android.content.res.*;
 /**
  * Various debugging/tracing tools related to {@link View} and the view hierarchy.
  */
@@ -292,6 +296,7 @@ public class ViewDebug {
 
     private static final String REMOTE_COMMAND_CAPTURE = "CAPTURE";
     private static final String REMOTE_COMMAND_DUMP = "DUMP";
+  private static final String REMOTE_COMMAND_DUMP_SEARCHUI = "DUMP_SEARCHUI";
     private static final String REMOTE_COMMAND_INVALIDATE = "INVALIDATE";
     private static final String REMOTE_COMMAND_REQUEST_LAYOUT = "REQUEST_LAYOUT";
     private static final String REMOTE_PROFILE = "PROFILE";
@@ -405,9 +410,14 @@ public class ViewDebug {
         // Paranoid but safe...
         view = view.getRootView();
 
+//    Log.i( "zhao ViewDebug", " command === " + command + " parameters == " + parameters );
         if (REMOTE_COMMAND_DUMP.equalsIgnoreCase(command)) {
             dump(view, clientStream);
-        } else if (REMOTE_COMMAND_CAPTURE_LAYERS.equalsIgnoreCase(command)) {
+        }
+    else if (REMOTE_COMMAND_DUMP_SEARCHUI.equalsIgnoreCase(command)) {
+            dumpSearchUI(view, clientStream);
+        }
+    else if (REMOTE_COMMAND_CAPTURE_LAYERS.equalsIgnoreCase(command)) {
             captureLayers(view, new DataOutputStream(clientStream));
         } else {
             final String[] params = parameters.split(" ");
@@ -772,6 +782,15 @@ public class ViewDebug {
         }
     }
 
+  private static boolean s_writeSearchUI = false;
+  private static void dumpSearchUI(View root, OutputStream clientStream ) throws IOException
+  {
+    s_writeSearchUI = true;
+
+    dump( root, clientStream );
+
+    s_writeSearchUI = false;
+  }
     private static View findView(ViewGroup group, String className, int hashCode) {
         if (isRequestedView(group, className, hashCode)) {
             return group;
@@ -835,6 +854,10 @@ public class ViewDebug {
             out.write('@');
             out.write(Integer.toHexString(view.hashCode()));
             out.write(' ');
+      if ( s_writeSearchUI == true )
+      {
+        writeSearchUIInfo( view, out );
+      }
             dumpViewProperties(context, view, out);
             out.newLine();
         } catch (IOException e) {
@@ -843,6 +866,148 @@ public class ViewDebug {
         }
         return true;
     }
+  private static void writeSearchUIInfo( View view, BufferedWriter out )
+  {
+    writeViewXmlInfo( view, out );
+
+    writeDrawableInfo( view, out );
+  }
+
+  private static void writeViewXmlInfo( View view, BufferedWriter out )
+  {
+    Context context;
+    //ApplicationInfo appinfo;
+
+    
+    if ( view.mInflaterContext != null )
+    {
+      context = view.mInflaterContext;
+    }
+    else
+    {
+      context = view.getContext();
+    }
+    //appinfo = context.getApplicationInfo();
+
+//    Log.i( "zhao", "ViewDebug :  rInflate : xmlPath  === " + view.xmlPath );
+//    Log.i( "zhao", "ViewDebug : rInflate : cacheDir  === " + context.getCacheDir() );
+//      Log.i( "zhao", "ViewDebug : rInflate : getPackageName  === " + context.getPackageName() );
+//      Log.i( "zhao", "ViewDebug : rInflate : getPackageResourcePath  === " + context.getPackageResourcePath() );
+//    Log.i( "zhao", "ViewDebug : rInflate : class name   === " + context.getClass() );
+
+//    Log.i( "zhao", " ViewDebug : view xml path =============== " + view.xmlPath );
+
+//    Configuration config = context.getResources().getConfiguration(); 
+//    Log.i( "zhao", " ViewDebug : configuration =============== " + config.toString() );
+
+    try 
+    {
+      writeEntry( out, "text:", "$xmlPath", "", view.xmlPath );
+      writeEntry( out, "text:", "$PackageName", "", context.getPackageName() );
+      writeEntry( out, "text:", "$PackageResourcePath", "", context.getPackageResourcePath() );
+      writeEntry( out, "text:", "$cacheDir", "", context.getCacheDir() );
+      writeEntry( out, "text:", "$Class name", "", context.getClass() );
+    }
+    catch (IOException e) 
+     {
+            Log.w("ViewDebug", "Error while dumping view info");
+            return;
+        }
+
+    
+  }
+
+  private static void writeDrawableInfo( View view, BufferedWriter out )
+  {
+    Drawable drawable = view.getBackground();
+    writeDrawable( drawable, view, out, "$Background" );
+
+//    Log.i( "zhao", " ViewDebug : view ========= " + view.hashCode() );
+    
+    if ( view instanceof ImageView )
+    {
+//      Log.i( "zhao", " ViewDebug : view instanceof ImageView " );
+    
+      ImageView image = ( ImageView )view;
+
+      drawable = image.getDrawable();
+
+      writeDrawable( drawable, view, out, "$Drawable" );
+    }
+    else if ( view instanceof SeekBar )
+    {
+//      Log.i( "zhao", " ViewDebug : view instanceof SeekBar " );
+      SeekBar bar = ( SeekBar )view;
+      drawable = bar.getThumb();
+      writeDrawable( drawable, view, out, "$mThumb" );
+    }
+    else if ( view instanceof CompoundButton )
+    {
+//      Log.i( "zhao", " ViewDebug : view instanceof CompoundButton " );
+      CompoundButton button = ( CompoundButton )view;
+      drawable = button.getButtonDrawable();
+      writeDrawable( drawable, view, out, "$ButtonDrawable" );
+
+      if ( view instanceof Switch )
+      {
+//        Log.i( "zhao", " ViewDebug : view instanceof Switch " );
+      
+        Switch swi = ( Switch )view;
+        
+        drawable = swi.getThumbDrawable();
+        writeDrawable( drawable, view, out, "$ThumbDrawable" );
+
+        drawable = swi.getTrackDrawable();
+        writeDrawable( drawable, view, out, "$TrackDrawable" );
+      }
+    }
+    else if ( view instanceof CheckedTextView )
+    {
+//      Log.i( "zhao", " ViewDebug : view instanceof CheckedTextView " );
+      CheckedTextView text = ( CheckedTextView )view;
+      drawable = text.getCheckMarkDrawable();
+      writeDrawable( drawable, view, out, "$CheckMarkDrawable" );
+    }      
+    else if ( view instanceof IconMenuItemView )
+    {
+//      Log.i( "zhao", " ViewDebug : view instanceof CheckedTextView " );
+      IconMenuItemView menu = ( IconMenuItemView )view;
+      drawable = menu.getIcon();
+
+      writeDrawable( drawable, view, out, "$mIcon" );
+    }
+    
+  }
+
+  private static void writeDrawable( Drawable drawable, View view, BufferedWriter out, String title )
+  {
+    if ( drawable != null )
+    {
+      
+//      Log.i( "zhao", " ViewDebug : drawable != null title === " + title
+//          + " drawable ========= " + drawable.hashCode() );
+    
+      if ( drawable.resId != -1 )
+      {
+//        Log.i( "zhao", " ViewDebug : resId != -1 " );
+      
+        try
+        {
+          final String path = view.getContext().getResources().getDrawableResourceName( drawable.resId );
+                
+//          Log.i( "zhao", " ViewDebug : path  ========= " + path );
+
+          writeEntry( out, "text:", title, "", path );
+          
+        }
+        catch ( Exception e )
+        {
+          
+        }
+      }
+    }
+    
+  }
 
     private static Field[] getExportedPropertyFields(Class<?> klass) {
         if (sFieldsForClasses == null) {

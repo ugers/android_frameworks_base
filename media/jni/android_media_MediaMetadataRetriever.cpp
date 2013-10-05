@@ -83,7 +83,7 @@ android_media_MediaMetadataRetriever_setDataSourceAndHeaders(
         JNIEnv *env, jobject thiz, jstring path,
         jobjectArray keys, jobjectArray values) {
 
-    ALOGV("setDataSource");
+    ALOGV("setDataSource Path");
     MediaMetadataRetriever* retriever = getRetriever(env, thiz);
     if (retriever == 0) {
         jniThrowException(
@@ -133,7 +133,7 @@ android_media_MediaMetadataRetriever_setDataSourceAndHeaders(
 
 static void android_media_MediaMetadataRetriever_setDataSourceFD(JNIEnv *env, jobject thiz, jobject fileDescriptor, jlong offset, jlong length)
 {
-    ALOGV("setDataSource");
+    ALOGV("setDataSource Fd");
     MediaMetadataRetriever* retriever = getRetriever(env, thiz);
     if (retriever == 0) {
         jniThrowException(env, "java/lang/IllegalStateException", "No retriever available");

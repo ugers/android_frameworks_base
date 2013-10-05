@@ -46,7 +46,7 @@ import android.database.ContentObserver;
 import android.net.CaptivePortalTracker;
 import android.net.ConnectivityManager;
 import android.net.DummyDataStateTracker;
-import android.net.EthernetDataTracker;
+import android.net.ethernet.EthernetDataTracker;
 import android.net.IConnectivityManager;
 import android.net.INetworkManagementEventObserver;
 import android.net.INetworkPolicyListener;
@@ -454,7 +454,7 @@ public class ConnectivityService extends IConnectivityManager.Stub {
                             n.type);
                     continue;
                 }
-                if (mRadioAttributes[n.radio] == null) {
+                if ((mRadioAttributes[n.radio] == null) && (n.type != ConnectivityManager.TYPE_ETHERNET)) {
                     loge("Error in networkAttributes - ignoring attempt to use undefined " +
                             "radio " + n.radio + " in network type " + n.type);
                     continue;
@@ -2279,6 +2279,15 @@ public class ConnectivityService extends IConnectivityManager.Stub {
         }
 
         boolean routesChanged = (routeDiff.removed.size() != 0 || routeDiff.added.size() != 0);
+
+        if(!routesChanged) {
+            log("renew ip, routesChanged is false.");
+            if (newLp != null) {
+                log("renew ip, newLp != null ");
+                routeDiff.added = newLp.getRoutes();
+                dnsDiff.added = newLp.getDnses();
+            }
+        }
 
         for (RouteInfo r : routeDiff.removed) {
             if (isLinkDefault || ! r.isDefaultRoute()) {

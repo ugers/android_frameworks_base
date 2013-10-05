@@ -125,6 +125,8 @@ public abstract class Drawable {
 
     private int mLayoutDirection;
 
+    public int resId = -1;
+
     /**
      * Draw in its bounds (set via setBounds) respecting optional effects such
      * as alpha (set via setAlpha) and color filter (set via setColorFilter).

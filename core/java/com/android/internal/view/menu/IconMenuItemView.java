@@ -199,6 +199,10 @@ public final class IconMenuItemView extends TextView implements MenuView.ItemVie
         }
     }
 
+  public Drawable getIcon()
+  {
+    return mIcon;
+  }
     public void setItemInvoker(ItemInvoker itemInvoker) {
         mItemInvoker = itemInvoker;
     }

@@ -234,6 +234,7 @@ class ViewServer implements Runnable {
                     parameters = request.substring(index + 1);
                 }
 
+//        Slog.i("zhao", " command =========== " + command + " parameters ======== " + parameters );
                 boolean result;
                 if (COMMAND_PROTOCOL_VERSION.equalsIgnoreCase(command)) {
                     result = writeValue(mClient, VALUE_PROTOCOL_VERSION);

@@ -46,6 +46,8 @@ import android.os.storage.StorageVolume;
 import android.provider.Settings;
 import android.util.Pair;
 import android.util.Slog;
+import android.os.PowerManager;
+import android.os.DynamicPManager;
 
 import com.android.internal.annotations.GuardedBy;
 
@@ -83,6 +85,14 @@ public class UsbDeviceManager {
     private static final String AUDIO_SOURCE_PCM_PATH =
             "/sys/class/android_usb/android0/f_audio_source/pcm";
 
+//add by kinier for detect usb port             
+    private static final String USB_PORT_PM_STATE = 
+            "DEVPATH=/devices/virtual/usb_port_pm/port_pm";
+
+    private static final String USB_PORT_STATE_SYS_PATH =
+            "/sys/class/usb_port_pm/port_pm/state";
+
+//add by kinier end
     private static final int MSG_UPDATE_STATE = 0;
     private static final int MSG_ENABLE_ADB = 1;
     private static final int MSG_SET_CURRENT_FUNCTIONS = 2;
@@ -118,6 +128,10 @@ public class UsbDeviceManager {
     private String[] mAccessoryStrings;
     private UsbDebuggingManager mDebuggingManager;
 
+    private PowerManager.WakeLock wl;
+    private int wlref = 0;
+//    private DynamicPManager mDPM;
+
     private class AdbSettingsObserver extends ContentObserver {
         public AdbSettingsObserver() {
             super(null);
@@ -140,12 +154,29 @@ public class UsbDeviceManager {
 
             String state = event.get("USB_STATE");
             String accessory = event.get("ACCESSORY");
+
+            //add by kinier for detect usb port  
+            String port_state = event.get("USB_PORT_STATE");
+            //add by kinier end
+
             if (state != null) {
                 mHandler.updateState(state);
             } else if ("START".equals(accessory)) {
                 if (DEBUG) Slog.d(TAG, "got accessory start");
                 startAccessoryMode();
             }
+            //add by kinier for detect usb port  
+            else if(port_state != null){
+              
+              Slog.d("kinier", port_state); 
+          
+               Intent intent = new Intent("android.hardware.usb.action.USB_PORT_STATE");
+              intent.addFlags(Intent.FLAG_RECEIVER_REPLACE_PENDING);
+              intent.putExtra("USB_PORT_STATE", port_state);
+              mContext.sendStickyBroadcast(intent);
+
+            }
+            //add by kinier end
         }
     };
 
@@ -162,6 +193,9 @@ public class UsbDeviceManager {
         PackageManager pm = mContext.getPackageManager();
         mHasUsbAccessory = pm.hasSystemFeature(PackageManager.FEATURE_USB_ACCESSORY);
         initRndisAddress();
+
+        PowerManager power = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
+        wl = power.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
 
         readOemUsbOverrideConfig();
 
@@ -224,6 +258,36 @@ public class UsbDeviceManager {
 
         mHandler.sendEmptyMessage(MSG_SYSTEM_READY);
     }
+
+    private void enableWakeLock(boolean enable){
+       if(enable){
+           Slog.d(TAG, "enable "+ TAG +" wakelock"+" wlref = "+ wlref);            
+           if(wlref==0){
+               wlref++;
+               wl.acquire();
+           }            
+       }else{
+           Slog.d(TAG, "disable "+ TAG +" wakelock"+" wlref = "+ wlref);              
+           if(wlref==1){
+               wl.release();
+               wlref--;
+           }
+       }
+    }
+/*    
+    private void enableDPMLock(boolean enable){
+        if(enable){
+           if(mDPM==null)
+                mDPM = new DynamicPManager();  
+                mDPM.acquireCpuFreqLock(DynamicPManager.CPU_MODE_PERFORMENCE);                
+           }else{
+              if(mDPM!=null){
+                        mDPM.releaseCpuFreqLock();
+                        mDPM = null;
+              }
+           }     
+    } 
+*/
 
     private void startAccessoryMode() {
         mAccessoryStrings = nativeGetAccessoryStrings();
@@ -399,6 +463,9 @@ public class UsbDeviceManager {
                 // Watch for USB configuration changes
                 mUEventObserver.startObserving(USB_STATE_MATCH);
                 mUEventObserver.startObserving(ACCESSORY_START_MATCH);
+           //add by kinier  for detect USB port state
+           mUEventObserver.startObserving(USB_PORT_PM_STATE);
+           //add by kinier end
 
                 mContext.registerReceiver(
                         mBootCompletedReceiver, new IntentFilter(Intent.ACTION_BOOT_COMPLETED));
@@ -627,6 +694,10 @@ public class UsbDeviceManager {
                 case MSG_UPDATE_STATE:
                     mConnected = (msg.arg1 == 1);
                     mConfigured = (msg.arg2 == 1);
+
+                    enableWakeLock(mConnected);
+                    //enableDPMLock(mConnected);
+
                     updateUsbNotification();
                     updateAdbNotification();
                     if (containsFunction(mCurrentFunctions,
@@ -662,6 +733,27 @@ public class UsbDeviceManager {
                     if (mCurrentAccessory != null) {
                         getCurrentSettings().accessoryAttached(mCurrentAccessory);
                     }
+
+                   //add by kinier for detect usb port state 
+                   try{
+                     String port_state = FileUtils.readTextFile(new File(USB_PORT_STATE_SYS_PATH), 0, null).trim();
+                               Thread.sleep(1000);
+                     //read again
+                     port_state = FileUtils.readTextFile(new File(USB_PORT_STATE_SYS_PATH), 0, null).trim();
+                       
+                     if(port_state != null){
+                       Slog.d("kinier", port_state + " read from Node");
+                                
+                         Intent intent = new Intent("android.hardware.usb.action.USB_PORT_STATE");
+                          intent.addFlags(Intent.FLAG_RECEIVER_REPLACE_PENDING);
+                         intent.putExtra("USB_PORT_STATE", port_state);
+                         mContext.sendStickyBroadcast(intent);
+                       }
+                     }catch (Exception e) {
+                              Slog.e(TAG, "read usb port state fail!");
+                    }
+                   //add by kinier end
+
                     if (mDebuggingManager != null) {
                         mDebuggingManager.setAdbEnabled(mAdbEnabled);
                     }

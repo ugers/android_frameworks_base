@@ -4106,7 +4106,7 @@ public final class ActivityThread {
         ArrayList<ComponentCallbacks2> callbacks = collectComponentCallbacks(false, config);
 
         // Cleanup hardware accelerated stuff
-        WindowManagerGlobal.getInstance().trimLocalMemory();
+        //WindowManagerGlobal.getInstance().trimLocalMemory();
 
         freeTextLayoutCachesIfNeeded(configDiff);
 

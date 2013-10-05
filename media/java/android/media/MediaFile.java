@@ -239,8 +239,8 @@ public class MediaFile {
         addFileType("MKV", FILE_TYPE_MKV, "video/x-matroska");
         addFileType("WEBM", FILE_TYPE_WEBM, "video/webm");
         addFileType("TS", FILE_TYPE_MP2TS, "video/mp2ts");
-        addFileType("MPG", FILE_TYPE_MP2TS, "video/mp2ts");
-		addFileType("M2TS",FILE_TYPE_MP2TS, "video/mp2ts");
+        addFileType("TP", FILE_TYPE_MP2TS, "video/mp2ts");
+        addFileType("M2TS",FILE_TYPE_MP2TS, "video/mp2ts");
         addFileType("AVI", FILE_TYPE_AVI, "video/avi");
 
 		addFileType("RMVB",FILE_TYPE_CEDARV, "video/cedarx");
@@ -295,9 +295,7 @@ public class MediaFile {
                 fileType <= LAST_AUDIO_FILE_TYPE) ||
                 (fileType >= FIRST_MIDI_FILE_TYPE &&
                 fileType <= LAST_MIDI_FILE_TYPE) ||
-                fileType == FILE_TYPE_CEDARA &&
-                (fileType >= FIRST_AUDIO_FILE_TYPE2 ||
-                fileType <= LAST_AUDIO_FILE_TYPE2));
+                fileType == FILE_TYPE_CEDARA);
     }
 
     public static boolean isVideoFileType(int fileType) {

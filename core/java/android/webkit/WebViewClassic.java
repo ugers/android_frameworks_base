@@ -61,6 +61,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.SystemClock;
+import android.os.PowerManager;
+import android.os.PowerManager.WakeLock;
 import android.security.KeyChain;
 import android.text.Editable;
 import android.text.InputType;
@@ -705,6 +707,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
     ArrayList<Message> mBatchedTextChanges = new ArrayList<Message>();
     boolean mIsBatchingTextChanges = false;
     private long mLastEditScroll = 0;
+    private WakeLock mWakeLock = null;
 
     private static class OnTrimMemoryListener implements ComponentCallbacks2 {
         private static OnTrimMemoryListener sInstance = null;
@@ -7261,6 +7264,21 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
         return Math.max(0, mEditTextContent.height() - mEditTextContentBounds.height());
     }
 
+  private void acquireWakeLock() {
+        if (mWakeLock == null) {
+            PowerManager pm = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
+            mWakeLock = pm.newWakeLock(PowerManager.SCREEN_BRIGHT_WAKE_LOCK, "flash_plugin");
+            mWakeLock.acquire();
+        }
+    }
+  
+    private void releaseWakeLock(){
+        if(mWakeLock != null && mWakeLock.isHeld()){
+            mWakeLock.release();
+            mWakeLock = null;
+        }
+    }
+
     //-------------------------------------------------------------------------
     // Methods can be called from a separate thread, like WebViewCore
     // If it needs to call the View system, it has to send message.
@@ -7466,10 +7484,12 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
                     mFullScreenHolder.setContentView(view);
                     mFullScreenHolder.show();
                     invalidate();
+          acquireWakeLock();
 
                     break;
                 }
                 case HIDE_FULLSCREEN:
+          releaseWakeLock();
                     dismissFullScreenMode();
                     break;
 

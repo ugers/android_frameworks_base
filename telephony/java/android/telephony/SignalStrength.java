@@ -28,7 +28,7 @@ import android.util.Log;
 public class SignalStrength implements Parcelable {
 
     private static final String LOG_TAG = "SignalStrength";
-    private static final boolean DBG = false;
+    private static final boolean DBG = true;
 
     /** @hide */
     public static final int SIGNAL_STRENGTH_NONE_OR_UNKNOWN = 0;
@@ -457,10 +457,10 @@ public class SignalStrength implements Parcelable {
         if (isGsm) {
             boolean lteChecks = (getLteRsrp() == INVALID && getLteRsrq() == INVALID && getLteRssnr() == INVALID && getLteSignalStrenght() == 99);
             boolean oldRil = needsOldRilFeature("signalstrength");
-            level = getLteLevel();
-            if ((level == SIGNAL_STRENGTH_NONE_OR_UNKNOWN && getGsmAsuLevel() != 99 && lteChecks) || oldRil) {
+            //level = getLteLevel();
+            //if ((level == SIGNAL_STRENGTH_NONE_OR_UNKNOWN && getGsmAsuLevel() != 99 && lteChecks) || oldRil) {
                 level = getGsmLevel();
-            }
+            //}
         } else {
             int cdmaLevel = getCdmaLevel();
             int evdoLevel = getEvdoLevel();

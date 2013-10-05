@@ -37,6 +37,7 @@ import android.hardware.display.DisplayManager;
 import android.hardware.display.DisplayManagerGlobal;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.Build;
 import android.os.Debug;
 import android.os.Handler;
 import android.os.Parcel;
@@ -1768,6 +1769,10 @@ public class ActivityManager {
         final Resources res = mContext.getResources();
         final int density = res.getDisplayMetrics().densityDpi;
         final int sw = res.getConfiguration().smallestScreenWidthDp;
+
+        if("true".equals(Build.TABLETUI)){
+            return DisplayMetrics.DENSITY_HIGH;
+        }
 
         if (sw < 600) {
             // Smaller than approx 7" tablets, use the regular icon size.

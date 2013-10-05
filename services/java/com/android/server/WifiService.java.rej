@@ -1,0 +1,19 @@
+--- frameworks/base/services/java/com/android/server/WifiService.java
++++ frameworks/base/services/java/com/android/server/WifiService.java
+@@ -1058,6 +1058,7 @@
+                     Slog.d(TAG, "ACTION_SCREEN_ON");
+                 }
+                 mAlarmManager.cancel(mIdleIntent);
++                mWifiStateMachine.releaseKeepaliveLock();
+                 mScreenOff = false;
+                 evaluateTrafficStatsPolling();
+                 setDeviceIdleAndUpdateWifi(false);
+@@ -1082,6 +1083,8 @@
+                     } else {
+                         setDeviceIdleAndUpdateWifi(true);
+                     }
++                } else {
++                    mWifiStateMachine.acquireKeepaliveLock();
+                 }
+             } else if (action.equals(ACTION_DEVICE_IDLE)) {
+                 setDeviceIdleAndUpdateWifi(true);

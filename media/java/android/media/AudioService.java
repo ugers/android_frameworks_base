@@ -4763,8 +4763,10 @@ public class AudioService extends IAudioService.Stub implements OnFinished {
                     mVoiceButtonHandled = false;
                 } else if (mVoiceButtonDown && !mVoiceButtonHandled
                         && (keyEvent.getFlags() & KeyEvent.FLAG_LONG_PRESS) != 0) {
-                    // long-press, start voice-based interactions
+
                     mVoiceButtonHandled = true;
+
+          // long-press, start voice-based interactions
                     voiceButtonAction = VOICEBUTTON_ACTION_START_VOICE_INPUT;
                 }
             } else if (keyAction == KeyEvent.ACTION_UP) {

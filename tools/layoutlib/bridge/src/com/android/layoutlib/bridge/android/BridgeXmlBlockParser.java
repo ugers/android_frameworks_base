@@ -70,6 +70,10 @@ public class BridgeXmlBlockParser implements XmlResourceParser {
         }
     }
 
+  public String getXmlPath()
+  {
+    return null;
+  }
     public XmlPullParser getParser() {
         return mParser;
     }

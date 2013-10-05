@@ -91,7 +91,7 @@ import java.util.HashSet;
  *
  * {@hide}
  */
-@SuppressWarnings({"EmptyCatchBlock", "PointlessBooleanExpression"})
+//@SuppressWarnings({"EmptyCatchBlock", "PointlessBooleanExpression"})
 public final class ViewRootImpl implements ViewParent,
         View.AttachInfo.Callbacks, HardwareRenderer.HardwareDrawCallbacks {
     private static final String TAG = "ViewRootImpl";
@@ -687,8 +687,10 @@ public final class ViewRootImpl implements ViewParent,
         if (mTranslator != null) return;
 
         // Try to enable hardware acceleration if requested
-        final boolean hardwareAccelerated = 
-                (attrs.flags & WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED) != 0;
+       // final boolean hardwareAccelerated = 
+       //         (attrs.flags & WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED) != 0;
+
+        final boolean hardwareAccelerated = true;
 
         if (hardwareAccelerated) {
             if (!HardwareRenderer.isAvailable()) {
@@ -3176,6 +3178,7 @@ public final class ViewRootImpl implements ViewParent,
 
     private void deliverPointerEvent(QueuedInputEvent q) {
         final MotionEvent event = (MotionEvent)q.mEvent;
+    SurfaceView.adjustSurfaceViewMotion(event);
         final boolean isTouchEvent = event.isTouchEvent();
         if (mInputEventConsistencyVerifier != null) {
             if (isTouchEvent) {

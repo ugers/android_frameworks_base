@@ -319,6 +319,11 @@ public abstract class CompoundButton extends Button implements Checkable {
         if (mButtonDrawable != null) mButtonDrawable.jumpToCurrentState();
     }
 
+  public Drawable getButtonDrawable( )
+  {
+    return mButtonDrawable;
+    }
+
     static class SavedState extends BaseSavedState {
         boolean checked;
 

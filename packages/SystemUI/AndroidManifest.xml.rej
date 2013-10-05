@@ -1,0 +1,12 @@
+--- frameworks/base/packages/SystemUI/AndroidManifest.xml
++++ frameworks/base/packages/SystemUI/AndroidManifest.xml
+@@ -47,6 +47,9 @@
+     <uses-permission android:name="android.permission.MASTER_CLEAR" />
+     <uses-permission android:name="android.permission.VIBRATE" />
+     <uses-permission android:name="android.permission.CAMERA" />
++    
++    <!-- Allwinner HDMI -->
++    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+ 
+     <!-- ActivityManager -->
+     <uses-permission android:name="android.permission.GET_TASKS" />

@@ -65,22 +65,29 @@ final class XmlBlock {
         }
     }
 
-    public XmlResourceParser newParser() {
+    public XmlResourceParser newParser( String path ) {
         synchronized (this) {
             if (mNative != 0) {
-                return new Parser(nativeCreateParseState(mNative), this);
+                return new Parser(nativeCreateParseState(mNative), this, path );
             }
             return null;
         }
     }
 
-    /*package*/ final class Parser implements XmlResourceParser {
-        Parser(int parseState, XmlBlock block) {
+    /*package*/ final class Parser implements XmlResourceParser 
+  {
+    private String xmlPath = null;
+    Parser(int parseState, XmlBlock block, String path) {
             mParseState = parseState;
             mBlock = block;
             block.mOpenCount++;
+      xmlPath = path;
         }
 
+    public String getXmlPath()
+    {
+      return xmlPath;
+    }
         public void setFeature(String name, boolean state) throws XmlPullParserException {
             if (FEATURE_PROCESS_NAMESPACES.equals(name) && state) {
                 return;

@@ -29,6 +29,7 @@ import android.content.res.XmlResourceParser;
 import android.util.AttributeSet;
 import android.util.Xml;
 
+import android.content.pm.*;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
@@ -466,6 +467,8 @@ public abstract class LayoutInflater {
                         temp = createViewFromTag(root, name, attrs);
                     }
 
+          SetViewXmlPath( temp, parser );
+
                     ViewGroup.LayoutParams params = null;
 
                     if (root != null) {
@@ -726,6 +729,10 @@ public abstract class LayoutInflater {
             }
 
             final String name = parser.getName();
+      if (DEBUG) 
+      {
+               System.out.println("LayoutInflater : rInflate : name  === " + name );
+            }
             
             if (TAG_REQUEST_FOCUS.equals(name)) {
                 parseRequestFocus(parser, parent);
@@ -741,17 +748,39 @@ public abstract class LayoutInflater {
                 final ViewGroup viewGroup = (ViewGroup) parent;
                 final ViewGroup.LayoutParams params = viewGroup.generateLayoutParams(attrs);
                 rInflate(parser, view, attrs, true);
-                viewGroup.addView(view, params);                
+                viewGroup.addView(view, params);
+        SetViewXmlPath( view, parser );                
             } else {
                 final View view = createViewFromTag(parent, name, attrs);
                 final ViewGroup viewGroup = (ViewGroup) parent;
                 final ViewGroup.LayoutParams params = viewGroup.generateLayoutParams(attrs);
                 rInflate(parser, view, attrs, true);
                 viewGroup.addView(view, params);
+
+        SetViewXmlPath( view, parser );
             }
         }
 
         if (finishInflate) parent.onFinishInflate();
+    }
+
+  private void SetViewXmlPath( View view , XmlPullParser parser )
+  {
+    XmlResourceParser xmlP = ( XmlResourceParser )parser;
+
+    view.xmlPath = xmlP.getXmlPath();
+    view.mInflaterContext = mContext;
+
+    if ( DEBUG )
+    {
+      Context context;
+      ApplicationInfo appinfo;
+
+      context = view.getContext();
+      appinfo = context.getApplicationInfo();
+
+    }
+    
     }
 
     private void parseRequestFocus(XmlPullParser parser, View parent)
@@ -825,6 +854,7 @@ public abstract class LayoutInflater {
                                 view.setLayoutParams(params);
                             }
                         }
+            SetViewXmlPath( view, childParser );
 
                         // Inflate all children.
                         rInflate(childParser, view, childAttrs, true);
