@@ -120,7 +120,7 @@ public class SignalClusterView
         mMobileActivity = (ImageView) findViewById(R.id.mobile_inout);
         mMobileType     = (ImageView) findViewById(R.id.mobile_type);
         mSpacer         =             findViewById(R.id.spacer);
-        mAirplane       = (ImageView) findViewById(R.id.airplane);
+        mAirplane       = null;//(ImageView) findViewById(R.id.airplane);
         mEthernetGroup  = (ViewGroup) findViewById(R.id.ethernet_combo);
         mEthernet       = (ImageView) findViewById(R.id.ethernet_state);
 
@@ -233,10 +233,10 @@ public class SignalClusterView
         }
 
         if (mIsAirplaneMode) {
-            mAirplane.setVisibility(View.VISIBLE);
-            mAirplane.setImageResource(mAirplaneIconId);
+            //mAirplane.setVisibility(View.VISIBLE);
+            //mAirplane.setImageResource(mAirplaneIconId);
         } else {
-            mAirplane.setVisibility(View.GONE);
+            //mAirplane.setVisibility(View.GONE);
         }
 
         if (mMobileVisible && (mWifiVisible || mEthernetVisible) && mIsAirplaneMode) {
