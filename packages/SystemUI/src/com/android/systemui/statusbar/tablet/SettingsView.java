@@ -61,8 +61,8 @@ public class SettingsView extends LinearLayout implements View.OnClickListener {
 
         final Context context = getContext();
 
-        mAirplane = new AirplaneModeController(context,
-                (CompoundButton)findViewById(R.id.airplane_checkbox));
+        //mAirplane = new AirplaneModeController(context,
+        //        (CompoundButton)findViewById(R.id.airplane_checkbox));
         findViewById(R.id.network).setOnClickListener(this);
 
         mRotationLockContainer = findViewById(R.id.rotate);
@@ -88,7 +88,7 @@ public class SettingsView extends LinearLayout implements View.OnClickListener {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        mAirplane.release();
+        //mAirplane.release();
         mDoNotDisturb.release();
         mRotate.release();
     }
