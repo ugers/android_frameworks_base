@@ -407,7 +407,10 @@ public final class ShutdownThread extends Thread {
         }
 
         // Shutdown radios.
-        shutdownRadios(MAX_RADIO_WAIT_TIME);
+        //shutdownRadios(MAX_RADIO_WAIT_TIME);
+        if(SystemProperties.get("ro.sw.embeded.telephony").equals("true")) {
+          shutdownRadios(MAX_RADIO_WAIT_TIME);
+        }
 
         // Shutdown MountService to ensure media is in a safe state
         IMountShutdownObserver observer = new IMountShutdownObserver.Stub() {
