@@ -23,7 +23,7 @@ public class DynamicPManagerService extends IDynamicPManager.Stub
 	private static final String CPUFREQUNCYY_USREVT      = "/sys/devices/system/cpu/cpu0/cpufreq/user_event_notify";
 	
 	private static final String POLICY_PERFORMANCE 		 = "performance";
-	private static final String POLICY_FANTASY     		 = "fantasys";
+	private static final String POLICY_FANTASY     		 = "fantasy";
 		
 	private ClientList clients = new ClientList(); 	
 	private Context mContext;
