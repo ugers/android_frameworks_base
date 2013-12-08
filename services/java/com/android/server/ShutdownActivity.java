@@ -59,7 +59,7 @@ public class ShutdownActivity extends Activity {
             }
         };
         thr.start();
-        finish();
+        //finish();
         // Wait for us to tell the power manager to shutdown.
         try {
             thr.join();
