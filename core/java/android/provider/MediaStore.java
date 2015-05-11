@@ -202,6 +202,14 @@ public final class MediaStore {
      */
     public static final String EXTRA_FINISH_ON_COMPLETION = "android.intent.extra.finishOnCompletion";
 
+
+    //by Bevis, for VideoPlayer to create playlist
+    public static final String PLAYLIST_TYPE = "android.intent.extra.playListType";
+
+    public static final String PLAYLIST_TYPE_CUR_FOLDER = "curFolder";
+    public static final String PLAYLIST_TYPE_MEDIA_PROVIDER = "mediaProvider";
+
+
     /**
      * The name of the Intent action used to launch a camera in still image mode.
      */

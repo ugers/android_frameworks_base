@@ -154,6 +154,8 @@ public class PhoneWindowManager implements WindowManagerPolicy {
     static final boolean ENABLE_CAR_DOCK_HOME_CAPTURE = true;
     static final boolean ENABLE_DESK_DOCK_HOME_CAPTURE = false;
 
+    static final int WINDOW_TYPE_TEST_MODE = 2099; //new Window type for AllWinner SDK
+	
     // QuickBoot time settings
     static final int DEFAULT_LONG_PRESS_POWERON_TIME = 500;
     static final int QUICKBOOT_LAUNCH_TIMEOUT = 2000;

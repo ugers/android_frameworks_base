@@ -183,7 +183,7 @@ public class MSimNetworkController extends NetworkController {
         mDataDirectionIconId = mMSimDataDirectionIconId[mDefaultSubscription];
         mDataSignalIconId = mMSimDataSignalIconId[mDefaultSubscription];
         mDataTypeIconId = mMSimDataTypeIconId[mDefaultSubscription];
-        mNoSimIconId = mNoMSimIconId[mDefaultSubscription];
+        //mNoSimIconId = mNoMSimIconId[mDefaultSubscription];
 
         mContentDescriptionPhoneSignal = mMSimContentDescriptionPhoneSignal[mDefaultSubscription];
         mContentDescriptionCombinedSignal = mMSimContentDescriptionCombinedSignal[
@@ -1346,10 +1346,10 @@ public class MSimNetworkController extends NetworkController {
                     = mMSimcombinedActivityIconId[subscription];
         }
 
-        // the ethernet icon
+        /*/ the ethernet icon
         if (mLastEthernetIconId != mEthernetIconId) {
             mLastEthernetIconId = mEthernetIconId;
-        }
+        }*/
 
         // the data network type overlay
         if (mMSimLastDataTypeIconId[subscription] != mMSimDataTypeIconId[subscription]) {

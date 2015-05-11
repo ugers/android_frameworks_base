@@ -352,7 +352,7 @@ public class RecoverySystem {
      * @hide
      */
     private static void doRebootWipeUserData(Context context, boolean wipeMedia) throws IOException {
-        final ConditionVariable condition = new ConditionVariable();
+        /*final ConditionVariable condition = new ConditionVariable();
 
         Intent intent = new Intent("android.intent.action.MASTER_CLEAR_NOTIFICATION");
         context.sendOrderedBroadcastAsUser(intent, UserHandle.OWNER,
@@ -365,15 +365,10 @@ public class RecoverySystem {
                 }, null, 0, null, null);
 
         // Block until the ordered broadcast has completed.
-        condition.block();
+        condition.block();*/
 
-        String cmd = "--wipe_data\n";
-        if (wipeMedia) {
-            cmd += "--wipe_media\n";
-        }
-        cmd += "--locale=" + Locale.getDefault().toString();
+        bootCommand(context, "--wipe_data\n--locale=" + Locale.getDefault().toString());
 
-        bootCommand(context, cmd);
     }
 
     /**

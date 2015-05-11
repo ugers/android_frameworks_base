@@ -387,6 +387,15 @@ static void nativeUnblankDisplay(JNIEnv* env, jclass clazz, jobject tokenObj) {
     SurfaceComposerClient::unblankDisplay(token);
 }
 
+static jint nativeSetDisplayParameter(JNIEnv* env, jclass clazz,
+        jobject tokenObj, jint cmd, jint para0, jint para1, jint para2) {
+    sp<IBinder> token(ibinderForJavaObject(env, tokenObj));
+    if (token == NULL) return JNI_ERR;
+
+    return SurfaceComposerClient::setDisplayParameter(token, cmd, para0, para1, para2);
+}
+
+
 // ----------------------------------------------------------------------------
 
 static JNINativeMethod sSurfaceControlMethods[] = {
@@ -442,6 +451,9 @@ static JNINativeMethod sSurfaceControlMethods[] = {
             (void*)nativeBlankDisplay },
     {"nativeUnblankDisplay", "(Landroid/os/IBinder;)V",
             (void*)nativeUnblankDisplay },
+    {"nativeSetDisplayParameter", "(Landroid/os/IBinder;IIII)I",
+            (void*)nativeSetDisplayParameter },
+
 };
 
 int register_android_view_SurfaceControl(JNIEnv* env)

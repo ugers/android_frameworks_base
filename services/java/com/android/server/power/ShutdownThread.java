@@ -418,7 +418,6 @@ public final class ShutdownThread extends Thread {
             } catch (RemoteException e) {
             }
         }
-
         // Shutdown MountService to ensure media is in a safe state
         IMountShutdownObserver observer = new IMountShutdownObserver.Stub() {
             public void onShutDownComplete(int statusCode) throws RemoteException {

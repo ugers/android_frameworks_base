@@ -41,6 +41,7 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.security.MessageDigest;
 import java.util.Arrays;
+import android.os.SystemProperties;
 
 public class UsbDebuggingManager implements Runnable {
     private static final String TAG = "UsbDebuggingManager";
@@ -90,8 +91,7 @@ public class UsbDebuggingManager implements Runnable {
                     Message msg = mHandler.obtainMessage(UsbDebuggingHandler.MESSAGE_ADB_CONFIRM);
                     msg.obj = key;
                     mHandler.sendMessage(msg);
-                }
-                else {
+                }else {
                     Slog.e(TAG, "Wrong message: " + (new String(Arrays.copyOfRange(buffer, 0, 2))));
                     break;
                 }
@@ -118,14 +118,44 @@ public class UsbDebuggingManager implements Runnable {
 
     private void closeSocket() {
         try {
-            mOutputStream.close();
-        } catch (Exception e) {
+            if (null == mOutputStream) {
+                Slog.e(TAG, "******************************mOutputStream == null");
+                SystemProperties.set("sys.service.adbd.enable", "1");
+                int count = 10;
+                boolean isSet = false;
+                isSet = SystemProperties.get("sys.service.adbd.enable", "0").equals("0") ? false : true;
+                while(!isSet && (0==count) ) {
+                        count--;
+                        SystemClock.sleep(100);
+                        isSet = SystemProperties.get("sys.service.adbd.enable", "0").equals("0") ? false : true;
+                }
+                SystemProperties.set("sys.service.adbd.enable", "0");
+                return;
+            } else {
+                mOutputStream.close();
+            }
+        } catch (IOException e) {
             Slog.e(TAG, "Failed closing output stream: " + e);
         }
 
         try {
-            mSocket.close();
-        } catch (Exception ex) {
+            if (null == mSocket) {
+                Slog.e(TAG, "******************************mSocket == null");
+                SystemProperties.set("sys.service.adbd.enable", "1");
+                int count = 10;
+                boolean isSet = false;
+                isSet = SystemProperties.get("sys.service.adbd.enable", "0").equals("0") ? false : true;
+                while(!isSet && (0==count) ) {
+                    count--;
+                    SystemClock.sleep(100);
+                    isSet = SystemProperties.get("sys.service.adbd.enable", "0").equals("0") ? false : true;
+                }
+                SystemProperties.set("sys.service.adbd.enable", "0");
+                return;
+            } else {
+                mSocket.close();
+            }
+        } catch (IOException ex) {
             Slog.e(TAG, "Failed closing socket: " + ex);
         }
     }

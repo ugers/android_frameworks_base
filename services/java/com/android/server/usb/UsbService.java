@@ -234,7 +234,19 @@ public class UsbService extends IUsbManager.Stub {
             throw new IllegalStateException("USB device mode not supported");
         }
     }
-
+	
+	@Override
+	public boolean getCurrentmConnectState(){
+		boolean retval = false;
+		mContext.enforceCallingOrSelfPermission(android.Manifest.permission.MANAGE_USB, null);
+        if (mDeviceManager != null) {
+            retval = mDeviceManager.getCurrentmConnectState();
+        } else {
+            throw new IllegalStateException("USB device connect state can't get");
+        }
+		return retval;
+	}
+	
     @Override
     public void setMassStorageBackingFile(String path) {
         mContext.enforceCallingOrSelfPermission(android.Manifest.permission.MANAGE_USB, null);

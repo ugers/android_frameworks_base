@@ -98,4 +98,7 @@ interface IUsbManager
 
     /* Clear public keys installed for secure USB debugging */
     void clearUsbDebuggingKeys();
+	
+	/*get real time usb connect state */
+	boolean getCurrentmConnectState();
 }

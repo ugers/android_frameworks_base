@@ -1278,7 +1278,7 @@ public final class Configuration implements Parcelable, Comparable<Configuration
         n = this.smallestScreenWidthDp - that.smallestScreenWidthDp;
         if (n != 0) return n;
         n = this.densityDpi - that.densityDpi;
-        if (n != 0) return n;
+        //if (n != 0) return n;
         if (this.themeConfig == null) {
             if (that.themeConfig != null) return 1;
         } else {

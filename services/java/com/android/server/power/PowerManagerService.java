@@ -61,6 +61,7 @@ import android.os.SystemProperties;
 import android.os.SystemService;
 import android.os.UserHandle;
 import android.os.WorkSource;
+import android.os.SystemProperties;
 import android.provider.Settings;
 import android.util.EventLog;
 import android.util.Log;
@@ -68,6 +69,7 @@ import android.util.Slog;
 import android.util.TimeUtils;
 import android.view.WindowManagerPolicy;
 
+import java.io.FileWriter;
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
 import java.util.ArrayList;

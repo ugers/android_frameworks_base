@@ -22,6 +22,7 @@ import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -271,7 +272,7 @@ public class LockPatternView extends View {
 
         mPathPaint.setAntiAlias(true);
         mPathPaint.setDither(true);
-        mPathPaint.setColor(context.getResources().getColor(R.color.lock_pattern_path_color));
+        mPathPaint.setColor(Color.WHITE);   // TODO this should be from the style
         mPathPaint.setAlpha(mStrokeAlpha);
         mPathPaint.setStyle(Paint.Style.STROKE);
         mPathPaint.setStrokeJoin(Paint.Join.ROUND);
@@ -1076,8 +1077,7 @@ public class LockPatternView extends View {
     protected Parcelable onSaveInstanceState() {
         Parcelable superState = super.onSaveInstanceState();
         return new SavedState(superState,
-                mLockPatternUtils == null ? "" : mLockPatternUtils.patternToString(mPattern,
-                        mPatternSize),
+                mLockPatternUtils == null ? "" : mLockPatternUtils.patternToString(mPattern),
                 mPatternDisplayMode.ordinal(), mPatternSize,
                 mInputEnabled, mInStealthMode, mEnableHapticFeedback, mVisibleDots, mShowErrorPath);
     }
@@ -1086,13 +1086,13 @@ public class LockPatternView extends View {
     protected void onRestoreInstanceState(Parcelable state) {
         final SavedState ss = (SavedState) state;
         super.onRestoreInstanceState(ss.getSuperState());
-        mPatternSize = ss.getPatternSize();
         if (mLockPatternUtils != null) {
             setPattern(
                     DisplayMode.Correct,
-                    mLockPatternUtils.stringToPattern(ss.getSerializedPattern(), mPatternSize));
+                    mLockPatternUtils.stringToPattern(ss.getSerializedPattern()));
         }
         mPatternDisplayMode = DisplayMode.values()[ss.getDisplayMode()];
+        mPatternSize = ss.getPatternSize();
         mInputEnabled = ss.isInputEnabled();
         mInStealthMode = ss.isInStealthMode();
         mEnableHapticFeedback = ss.isTactileFeedbackEnabled();

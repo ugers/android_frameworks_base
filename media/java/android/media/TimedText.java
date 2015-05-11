@@ -17,6 +17,7 @@
 package android.media;
 
 import android.graphics.Rect;
+import android.graphics.Bitmap;
 import android.os.Parcel;
 import android.util.Log;
 import java.util.HashMap;
@@ -48,6 +49,30 @@ import java.util.ArrayList;
  */
 public final class TimedText
 {
+    //aw extend for ssa subtitle position. eric_wang,20130710.
+    //copy cedarx's definitions.
+    public static final int SUB_RENDER_ALIGN_NONE       = 0;
+    public static final int SUB_RENDER_HALIGN_LEFT      = 1;
+    public static final int SUB_RENDER_HALIGN_CENTER    = 2;
+    public static final int SUB_RENDER_HALIGN_RIGHT     = 3;
+    public static final int SUN_RENDER_HALIGN_MASK      = 0x0000000f;
+    public static final int SUB_RENDER_VALIGN_TOP       = (1 << 4);
+    public static final int SUB_RENDER_VALIGN_CENTER    = (2 << 4);
+    public static final int SUB_RENDER_VALIGN_BOTTOM    = (3 << 4);
+    public static final int SUN_RENDER_VALIGN_MASK      = 0x000000f0;
+    
+    public static final int SUB_DISPPOS_DEFAULT   = 0;
+    public static final int SUB_DISPPOS_BOT_LEFT  = SUB_RENDER_VALIGN_BOTTOM+SUB_RENDER_HALIGN_LEFT;
+    public static final int SUB_DISPPOS_BOT_MID   = SUB_RENDER_VALIGN_BOTTOM+SUB_RENDER_HALIGN_CENTER;
+    public static final int SUB_DISPPOS_BOT_RIGHT = SUB_RENDER_VALIGN_BOTTOM+SUB_RENDER_HALIGN_RIGHT;
+    public static final int SUB_DISPPOS_MID_LEFT  = SUB_RENDER_VALIGN_CENTER+SUB_RENDER_HALIGN_LEFT;
+    public static final int SUB_DISPPOS_MID_MID   = SUB_RENDER_VALIGN_CENTER+SUB_RENDER_HALIGN_CENTER;
+    public static final int SUB_DISPPOS_MID_RIGHT = SUB_RENDER_VALIGN_CENTER+SUB_RENDER_HALIGN_RIGHT;
+    public static final int SUB_DISPPOS_TOP_LEFT  = SUB_RENDER_VALIGN_TOP   +SUB_RENDER_HALIGN_LEFT;
+    public static final int SUB_DISPPOS_TOP_MID   = SUB_RENDER_VALIGN_TOP   +SUB_RENDER_HALIGN_CENTER;
+    public static final int SUB_DISPPOS_TOP_RIGHT = SUB_RENDER_VALIGN_TOP   +SUB_RENDER_HALIGN_RIGHT;
+    //aw extend for ssa subtitle position. end.
+
     private static final int FIRST_PUBLIC_KEY                 = 1;
 
     // These keys must be in sync with the keys in TextDescription.h
@@ -68,7 +93,18 @@ public final class TimedText
     private static final int KEY_STRUCT_JUSTIFICATION          = 15; // Justification
     private static final int KEY_STRUCT_TEXT                   = 16; // Text
 
-    private static final int LAST_PUBLIC_KEY                  = 16;
+	//aw extend for idxsub ,pgs and ssa subtitle. eric_wang,20130625.
+	private static final int KEY_STRUCT_AWEXTEND_BMP           = 50;	// bmp subtitle such as idxsub and pgs.
+    private static final int KEY_STRUCT_AWEXTEND_PIXEL_FORMAT  = 51;	// PIXEL_FORMAT_RGBA_8888
+    private static final int KEY_STRUCT_AWEXTEND_PICWIDTH      = 52;	// bmp subtitle item's width
+    private static final int KEY_STRUCT_AWEXTEND_PICHEIGHT     = 53;	// bmp subtitle item's height
+    private static final int KEY_STRUCT_AWEXTEND_SUBDISPPOS    = 54;    // text subtitle's position, SUB_DISPPOS_BOT_LEFT
+    private static final int KEY_STRUCT_AWEXTEND_SCREENRECT    = 55;    // text subtitle's position need a whole area as a ref. 
+    private static final int KEY_STRUCT_AWEXTEND_HIDESUB       = 56;    // when multi subtitle show the same time, such as ssa, we need to tell app which subtitle need to hide.
+    //aw extend for idxsub ,pgs and ssa subtitle. end.
+    
+    private static final int LAST_PUBLIC_KEY                   = 56;
+	
 
     private static final int FIRST_PRIVATE_KEY                = 101;
 
@@ -105,6 +141,14 @@ public final class TimedText
     private Rect mTextBounds = null;
     private String mTextChars = null;
 
+	//aw extend. for support idxsub ,pgs and ssa subtitle. eric_wang,20130625.
+	private Bitmap  mAWExtendBitmap = null;
+	private int     mAWExtendBitmapSubtitleFlag = 0;	//0:text; 1:bitmap
+	private int     mAWExtendHideSubFlag = 0;           //0:show; 1:hide
+	private int     mAWExtendSubDispPos = SUB_DISPPOS_DEFAULT;    //SUB_DISPPOS_DEFAULT
+	private Rect    mAWExtendTextScreenBounds = null;
+	//aw extend. for support idxsub ,pgs and ssa subtitle. end.
+	
     private Justification mJustification;
 
     /**
@@ -385,6 +429,33 @@ public final class TimedText
         return mTextBounds;
     }
 
+    //aw extend. for get extend member. eric_wang, 20130710
+    public Bitmap AWExtend_getBitmap() 
+    {
+        return mAWExtendBitmap;
+    }
+    public int AWExtend_getBitmapSubtitleFlag() 
+    {
+        return mAWExtendBitmapSubtitleFlag;
+    }
+    public int AWExtend_getHideSubFlag() 
+    {
+        return mAWExtendHideSubFlag;
+    }
+    public int AWExtend_getSubDispPos() 
+    {
+        return mAWExtendSubDispPos;
+    }
+    public Rect AWExtend_getTextScreenBounds() 
+    {
+        return mAWExtendTextScreenBounds;
+    }
+    public List<Style> AWExtend_getStyleList() 
+    {
+        return mStyleList;
+    }
+    //aw extend. for get extend member. end.
+    
     /*
      * Go over all the records, collecting metadata keys and fields in the
      * Parcel. These are stored in mKeyObjectMap for application to retrieve.
@@ -407,17 +478,64 @@ public final class TimedText
 
             type = parcel.readInt();
             if (type != KEY_STRUCT_TEXT) {
-                return false;
-            }
+                // aw extend: eric_wang add bmp subtitle process code such as idxsub and pgs. 20130625
+                if(type != KEY_STRUCT_AWEXTEND_BMP)
+                {
+                    Log.w(TAG, "java_parseParcel, find timedtext type=" + type + ", so return false");
+                    return false;
+                }
+                type = parcel.readInt();
+                if(type != KEY_STRUCT_AWEXTEND_PIXEL_FORMAT)
+                {
+                    Log.w(TAG, "java_parseParcel, aw_extend, fail_1!");
+                }
+                int pixelFormat = parcel.readInt();
+                //Log.i(TAG, "parseParcel:pixelFormat=" + pixelFormat);
 
-            int textLen = parcel.readInt();
-            byte[] text = parcel.createByteArray();
-            if (text == null || text.length == 0) {
-                mTextChars = null;
-            } else {
-                mTextChars = new String(text);
-            }
+                type = parcel.readInt();
+                if(type != KEY_STRUCT_AWEXTEND_PICWIDTH)
+                {
+                    Log.w(TAG, "java_parseParcel, aw_extend, fail_2!");
+                }
+                int subWidth = parcel.readInt();
+                //Log.i(TAG, "parseParcel:subWidth=" + subWidth);
 
+                type = parcel.readInt();
+                if(type != KEY_STRUCT_AWEXTEND_PICHEIGHT)
+                {
+                    Log.w(TAG, "java_parseParcel, aw_extend, fail_3!");
+                }
+                int subHeight = parcel.readInt();
+                //Log.i(TAG, "parseParcel:subHeight=" + subHeight);
+
+                int picLen = parcel.readInt();
+                //Log.i(TAG, "parseParcel:picLen=" + picLen);
+                int[] ARGBBuf = parcel.createIntArray();
+                if (ARGBBuf == null || ARGBBuf.length == 0) 
+                {
+                    Log.w(TAG, "java_parseParcel, aw_extend, fail_4!");
+                    mAWExtendBitmap = null;
+                } 
+                else 
+                {
+                    //Log.i(TAG, "parseParcel:ARGBBuf.length_int=" + ARGBBuf.length);
+                    mAWExtendBitmap = Bitmap.createBitmap(ARGBBuf, subWidth, subHeight, Bitmap.Config.ARGB_8888);
+                }
+                mAWExtendBitmapSubtitleFlag = 1;
+            }
+            else
+            {
+                //Log.i(TAG, "java_parseParcel_6");
+                int textLen = parcel.readInt();
+                byte[] text = parcel.createByteArray();
+                if (text == null || text.length == 0) {
+                    mTextChars = null;
+                } else {
+                    mTextChars = new String(text);
+                    //Log.i(TAG, "java_parseParcel_print_string:" + mTextChars);
+                }
+                mAWExtendBitmapSubtitleFlag = 0;
+            }
         } else if (type != KEY_GLOBAL_SETTING) {
             Log.w(TAG, "Invalid timed text key found: " + type);
             return false;
@@ -508,6 +626,30 @@ public final class TimedText
                     object = mScrollDelay;
                     break;
                 }
+                //aw extend. for ssa subtitle. eric_wang, 20130710.
+                case KEY_STRUCT_AWEXTEND_SUBDISPPOS:
+                {
+                    mAWExtendSubDispPos = parcel.readInt();
+                    //Log.i(TAG, "java_parseParcel_SUBDISPPOS=0x" + Integer.toHexString(mAWExtendSubDispPos));
+                    break;
+                }
+                case KEY_STRUCT_AWEXTEND_SCREENRECT:
+                {
+                    int top     = parcel.readInt();
+                    int left    = parcel.readInt();
+                    int bottom  = parcel.readInt();
+                    int right   = parcel.readInt();
+                    //Log.i(TAG, "java_parseParcel_SCREENRECT, top:" + top + ", " + "left:" + left + ", " + "bottom:" + bottom + ", " + "right:" + right);
+                    mAWExtendTextScreenBounds = new Rect(left, top, right, bottom);
+                    break;
+                }
+                case KEY_STRUCT_AWEXTEND_HIDESUB:
+                {
+                    mAWExtendHideSubFlag = parcel.readInt();
+                    //Log.i(TAG, "java_parseParcel_HIDESUB=" + mAWExtendHideSubFlag);
+                    break;
+                }
+                //aw extend. for ssa subtitle. end.
                 default: {
                     break;
                 }

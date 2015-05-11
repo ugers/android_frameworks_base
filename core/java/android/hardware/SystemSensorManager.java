@@ -30,6 +30,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import android.provider.Settings;
+import android.util.DisplayMetrics;
+import android.os.SystemProperties;
+
+
 /**
  * Sensor manager implementation that communicates with the built-in
  * system sensors.
@@ -54,11 +59,15 @@ public class SystemSensorManager extends SensorManager {
     // Looper associated with the context in which this instance was created.
     private final Looper mMainLooper;
     private final int mTargetSdkLevel;
+    private static Context mContext;
+    private static int mGsensorDiscard = 0;
 
     /** {@hide} */
     public SystemSensorManager(Context context, Looper mainLooper) {
         mMainLooper = mainLooper;
+	mContext = context;
         mTargetSdkLevel = context.getApplicationInfo().targetSdkVersion;
+        mGsensorDiscard = 0;
         synchronized(sSensorModuleLock) {
             if (!sSensorModuleInitialized) {
                 sSensorModuleInitialized = true;
@@ -331,6 +340,14 @@ public class SystemSensorManager extends SensorManager {
                 Sensor sensor, int rateUs, int maxBatchReportLatencyUs, int reservedFlags) {
             if (nSensorEventQueue == 0) throw new NullPointerException();
             if (sensor == null) throw new NullPointerException();
+
+	    int  stype = sensor.getType();
+	    if ((stype == sensor.TYPE_ACCELEROMETER)||(stype == sensor.TYPE_GRAVITY)){
+	            int times =  SystemProperties.getInt("ro.aw.sensordiscard", 3);
+	            mGsensorDiscard = times;
+		   Log.d(TAG,">>>>>>> set discard sensrtime =" + mGsensorDiscard);
+	    }
+
             return nativeEnableSensor(nSensorEventQueue, sensor.getHandle(), rateUs,
                     maxBatchReportLatencyUs, reservedFlags);
         }
@@ -390,32 +407,83 @@ public class SystemSensorManager extends SensorManager {
                 // the queue waiting to be delivered. Ignore.
                 return;
             }
+	    final float[] v = t.values;
+
             // Copy from the values array.
             System.arraycopy(values, 0, t.values, 0, t.values.length);
-            t.timestamp = timestamp;
-            t.accuracy = inAccuracy;
-            t.sensor = sensor;
-            switch (t.sensor.getType()) {
-                // Only report accuracy for sensors that support it.
-                case Sensor.TYPE_MAGNETIC_FIELD:
-                case Sensor.TYPE_ORIENTATION:
-                    // call onAccuracyChanged() only if the value changes
-                    final int accuracy = mSensorAccuracies.get(handle);
-                    if ((t.accuracy >= 0) && (accuracy != t.accuracy)) {
-                        mSensorAccuracies.put(handle, t.accuracy);
-                        mListener.onAccuracyChanged(t.sensor, t.accuracy);
-                    }
-                    break;
-                default:
-                    // For other sensors, just report the accuracy once
-                    if (mFirstEvent.get(handle) == false) {
-                        mFirstEvent.put(handle, true);
-                        mListener.onAccuracyChanged(
-                                t.sensor, SENSOR_STATUS_ACCURACY_HIGH);
-                    }
-                    break;
+	    System.arraycopy(values, 0, t.originalValue, 0, t.values.length);
+            int stype = sensor.getType();
+	    String  str = Settings.System.getString(mContext.getContentResolver(), Settings.System.ACCELEROMETER_COORDINATE);
+            if(str!=null && str.equals("special")&&((stype == sensor.TYPE_ACCELEROMETER)||(stype == sensor.TYPE_GRAVITY))){
+		DisplayMetrics dmforgame= new DisplayMetrics();
+		dmforgame = mContext.getResources().getDisplayMetrics();
+		if(dmforgame.widthPixels > dmforgame.heightPixels) {
+                         v[0] = values[1];
+                         v[1] = -values[0];
+                         v[2] = values[2];
+		} else {
+                         v[0] = -values[1];
+	                v[1] = values[0];
+	                v[2] = values[2];
+		}
             }
-            mListener.onSensorChanged(t);
+	    if ((stype == sensor.TYPE_ACCELEROMETER)||(stype == sensor.TYPE_GRAVITY)){
+                  if(mGsensorDiscard == 0){
+		       t.timestamp = timestamp;
+                        t.accuracy = inAccuracy;
+                        t.sensor = sensor;
+                        switch (t.sensor.getType()) {
+                         // Only report accuracy for sensors that support it.
+                            case Sensor.TYPE_MAGNETIC_FIELD:
+                            case Sensor.TYPE_ORIENTATION:
+                         // call onAccuracyChanged() only if the value changes
+                                final int accuracy = mSensorAccuracies.get(handle);
+                                if ((t.accuracy >= 0) && (accuracy != t.accuracy)) {
+                                        mSensorAccuracies.put(handle, t.accuracy);
+                                        mListener.onAccuracyChanged(t.sensor, t.accuracy);
+                                }
+                                break;
+                            default:
+                        // For other sensors, just report the accuracy once
+                                if (mFirstEvent.get(handle) == false) {
+                                      mFirstEvent.put(handle, true);
+                                      mListener.onAccuracyChanged(
+                                      t.sensor, SENSOR_STATUS_ACCURACY_HIGH);
+                                 }
+                               break;
+                         }
+                        mListener.onSensorChanged(t);
+		}else{
+
+			Log.d(TAG,"discard gsensor data ...\n");
+			mGsensorDiscard --;
+	        }
+	   } else {
+                t.timestamp = timestamp;
+                t.accuracy = inAccuracy;
+                t.sensor = sensor;
+                switch (t.sensor.getType()) {
+                    // Only report accuracy for sensors that support it.
+                   case Sensor.TYPE_MAGNETIC_FIELD:
+                   case Sensor.TYPE_ORIENTATION:
+                       // call onAccuracyChanged() only if the value changes
+                        final int accuracy = mSensorAccuracies.get(handle);
+                        if ((t.accuracy >= 0) && (accuracy != t.accuracy)) {
+                            mSensorAccuracies.put(handle, t.accuracy);
+                            mListener.onAccuracyChanged(t.sensor, t.accuracy);
+                        }
+                        break;
+                   default:
+                        // For other sensors, just report the accuracy once
+                        if (mFirstEvent.get(handle) == false) {
+                            mFirstEvent.put(handle, true);
+                            mListener.onAccuracyChanged(
+                                t.sensor, SENSOR_STATUS_ACCURACY_HIGH);
+                        }
+                        break;
+                   }
+                  mListener.onSensorChanged(t);
+	      }
         }
 
         @SuppressWarnings("unused")

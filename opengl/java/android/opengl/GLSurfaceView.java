@@ -1140,7 +1140,13 @@ public class GLSurfaceView extends SurfaceView implements SurfaceHolder.Callback
          */
         public int swap() {
             if (! mEgl.eglSwapBuffers(mEglDisplay, mEglSurface)) {
-                return mEgl.eglGetError();
+                int msg = mEgl.eglGetError();
+                if(msg == EGL10.EGL_BAD_SURFACE){
+                    //FIXME,workaround for mali gpu driver
+                    return EGL10.EGL_SUCCESS;
+                }
+                else
+                    return mEgl.eglGetError();
             }
             return EGL10.EGL_SUCCESS;
         }

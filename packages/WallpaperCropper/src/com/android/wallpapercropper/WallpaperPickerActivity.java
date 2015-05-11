@@ -66,7 +66,6 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 import com.android.photos.BitmapRegionTileSource;
 
 import java.io.File;
@@ -654,20 +653,13 @@ public class WallpaperPickerActivity extends WallpaperCropActivity {
 
             @Override
             protected void onPostExecute(Bitmap thumb) {
-                if (thumb == null) {
-                    mTempWallpaperTiles.remove(uri);
-                    progressBar.setVisibility(View.INVISIBLE);
-                    Toast.makeText(WallpaperPickerActivity.this,
-                            getResources().getString(R.string.wallpaper_load_fail),
-                            Toast.LENGTH_SHORT).show();
-                    return;
+                if (thumb != null) {
+                    ImageView image =
+                            (ImageView) pickedImageThumbnail.findViewById(R.id.wallpaper_image);
+                    image.setImageBitmap(thumb);
+                    Drawable thumbDrawable = image.getDrawable();
+                    thumbDrawable.setDither(true);
                 }
-
-                ImageView image =
-                        (ImageView) pickedImageThumbnail.findViewById(R.id.wallpaper_image);
-                image.setImageBitmap(thumb);
-                Drawable thumbDrawable = image.getDrawable();
-                thumbDrawable.setDither(true);
 
                 mWallpapersView.addView(pickedImageThumbnail, 0);
 

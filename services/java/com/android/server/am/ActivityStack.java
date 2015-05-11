@@ -29,6 +29,7 @@ import static com.android.server.am.ActivityManagerService.DEBUG_TRANSITION;
 import static com.android.server.am.ActivityManagerService.DEBUG_USER_LEAVING;
 import static com.android.server.am.ActivityManagerService.DEBUG_VISBILITY;
 import static com.android.server.am.ActivityManagerService.VALIDATE_TOKENS;
+
 import static com.android.server.am.ActivityStackSupervisor.DEBUG_ADD_REMOVE;
 import static com.android.server.am.ActivityStackSupervisor.DEBUG_APP;
 import static com.android.server.am.ActivityStackSupervisor.DEBUG_SAVED_STATE;
@@ -76,6 +77,7 @@ import android.os.UserHandle;
 import android.util.EventLog;
 import android.util.Slog;
 import android.view.Display;
+import android.os.SystemProperties;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -749,7 +751,10 @@ final class ActivityStack {
         clearLaunchTime(prev);
         final ActivityRecord next = mStackSupervisor.topRunningActivityLocked();
         if (next == null || next.task != prev.task) {
-            prev.updateThumbnail(screenshotActivities(prev), null);
+            if (!prev.realActivity.getClassName().equals("com.android.systemui.recent.RecentsActivity") &&
+                    !prev.packageName.equals("com.android.launcher")){
+                prev.updateThumbnail(screenshotActivities(prev), null);
+            }
         }
         stopFullyDrawnTraceIfNeeded();
 

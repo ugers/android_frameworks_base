@@ -269,6 +269,20 @@ public final class Settings {
     @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
     public static final String ACTION_WIFI_DISPLAY_SETTINGS =
             "android.settings.WIFI_DISPLAY_SETTINGS";
+    
+    /**
+     * Activity Action: Show settings to allow configuration of Ethernet.
+     * <p>
+     * In some cases, a matching Activity may not exist, so ensure you
+     * safeguard against this.
+     * <p>
+     * Input: Nothing.
+     * <p>
+     * Output: Nothing.
+     */
+    @SdkConstant(SdkConstantType.ACTIVITY_INTENT_ACTION)
+    public static final String ACTION_ETHERNET_SETTINGS =
+            "android.settings.ETHERNET_SETTINGS";
 
     /**
      * Activity Action: Show settings to allow configuration of date and time.
@@ -785,6 +799,7 @@ public final class Settings {
     /** @hide - Private call() method to write to 'global' table */
     public static final String CALL_METHOD_PUT_GLOBAL= "PUT_global";
 
+    public static final String ROTATION_MODE_SET = "rotation_mode_set";
     /**
      * Activity Extra: Limit available options in launched activity based on the given authority.
      * <p>
@@ -2718,6 +2733,12 @@ public final class Settings {
          */
         public static final String LOCKSCREEN_DISABLED = "lockscreen.disabled";
 
+          /**
+         * To use default or special accelerometer coordinate system
+         * @hide
+         */
+        public static final String ACCELEROMETER_COORDINATE = "accelerometer_coordinate";
+		
         /**
          * Stores values for custom lockscreen targets
          * @hide
@@ -2849,6 +2870,12 @@ public final class Settings {
          */
         public static final String EGG_MODE = "egg_mode";
 
+        /**
+         * rotation mode already set
+         * @hide
+         */
+
+		public static final String ROTATION_MODE_SET = "rotation_mode_set";
         /**
          * Global stats collection
          *
@@ -4166,6 +4193,14 @@ public final class Settings {
             MOVED_TO_GLOBAL.add(Settings.Global.WIFI_SUSPEND_OPTIMIZATIONS_ENABLED);
             MOVED_TO_GLOBAL.add(Settings.Global.WIFI_WATCHDOG_ON);
             MOVED_TO_GLOBAL.add(Settings.Global.WIFI_WATCHDOG_POOR_NETWORK_TEST_ENABLED);
+            MOVED_TO_GLOBAL.add(Settings.Global.ETHERNET_ON);
+            MOVED_TO_GLOBAL.add(Settings.Global.ETHERNET_MODE);
+            MOVED_TO_GLOBAL.add(Settings.Global.ETHERNET_IP);
+            MOVED_TO_GLOBAL.add(Settings.Global.ETHERNET_MASK);
+            MOVED_TO_GLOBAL.add(Settings.Global.ETHERNET_DNS);
+            MOVED_TO_GLOBAL.add(Settings.Global.ETHERNET_ROUTE);
+            MOVED_TO_GLOBAL.add(Settings.Global.ETHERNET_CONF);
+            MOVED_TO_GLOBAL.add(Settings.Global.ETHERNET_IFNAME);       
             MOVED_TO_GLOBAL.add(Settings.Global.WIMAX_NETWORKS_AVAILABLE_NOTIFICATION_ON);
             MOVED_TO_GLOBAL.add(Settings.Global.PACKAGE_VERIFIER_ENABLE);
             MOVED_TO_GLOBAL.add(Settings.Global.PACKAGE_VERIFIER_TIMEOUT);
@@ -6918,6 +6953,18 @@ public final class Settings {
         * @hide
         */
        public static final String WIFI_P2P_DEVICE_NAME = "wifi_p2p_device_name";
+
+       /**
+        * Ethernet configuration
+        */
+       public static final String ETHERNET_ON      = "eth_on";
+       public static final String ETHERNET_MODE    = "eth_mode";
+       public static final String ETHERNET_IP      = "eth_ip";
+       public static final String ETHERNET_MASK    = "eth_netmask";
+       public static final String ETHERNET_DNS     = "eth_dns";
+       public static final String ETHERNET_ROUTE   = "eth_route";
+       public static final String ETHERNET_CONF    = "eth_conf";
+       public static final String ETHERNET_IFNAME  = "eth_ifname";
 
        /**
         * The min time between wifi disable and wifi enable

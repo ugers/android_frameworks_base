@@ -434,9 +434,9 @@ public class WifiMonitor {
                         mConnected = true;
                         break;
                     }
-                    if (connectTries++ < 50) {
+                    if (connectTries++ < 5) {
                         try {
-                            Thread.sleep(100);
+                            Thread.sleep(1000);
                         } catch (InterruptedException ignore) {
                         }
                     } else {

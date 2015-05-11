@@ -2198,6 +2198,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             loadIntegerSetting(stmt, Settings.System.ENABLE_PEOPLE_LOOKUP,
                     R.integer.def_people_lookup);
 
+	   loadStringSetting(stmt, Settings.System.ACCELEROMETER_COORDINATE,
+                    R.string.def_accelerometer_coordinate);
+					
             loadIntegerSetting(stmt, Settings.System.ENABLE_REVERSE_LOOKUP,
                     R.integer.def_reverse_lookup);
 
@@ -2393,6 +2396,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             loadBooleanSetting(stmt, Settings.Global.BLUETOOTH_ON,
                     R.bool.def_bluetooth_on);
 
+            loadBooleanSetting(stmt, Settings.Global.ETHERNET_ON,
+                    R.bool.def_ethernet_on);
+
+            loadBooleanSetting(stmt, Settings.Global.ETHERNET_MODE,
+                    R.bool.def_ethernet_mode);
+
             // Enable or disable Cell Broadcast SMS
             loadSetting(stmt, Settings.Global.CDMA_CELL_BROADCAST_SMS,
                     RILConstants.CDMA_CELL_BROADCAST_SMS_DISABLED);
@@ -2474,6 +2483,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     R.string.def_car_undock_sound);
             loadStringSetting(stmt, Settings.Global.WIRELESS_CHARGING_STARTED_SOUND,
                     R.string.def_wireless_charging_started_sound);
+
             loadIntegerSetting(stmt, Settings.Global.DOCK_AUDIO_MEDIA_ENABLED,
                     R.integer.def_dock_audio_media_enabled);
 

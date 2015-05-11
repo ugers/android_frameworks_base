@@ -1287,6 +1287,13 @@ public class ConnectivityManager {
      * @hide
      */
     public boolean isNetworkSupported(int networkType) {
+        final StackTraceElement[] callStack = Thread.currentThread().getStackTrace();
+        StackTraceElement caller = callStack[3];
+        if (caller != null){
+            if ("com.google.android.setupwizard.BaseActivity".equals(caller.getClassName())
+                && "isWifiOnlyBuild".equals(caller.getMethodName()))
+                return false;
+        }
         try {
             return mService.isNetworkSupported(networkType);
         } catch (RemoteException e) {}

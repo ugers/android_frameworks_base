@@ -1369,7 +1369,11 @@ public class MediaScanner
 
             if (ENABLE_BULK_INSERTS) {
                 // create MediaInserter for bulk inserts
-                mMediaInserter = new MediaInserter(mMediaProvider, mPackageName, 500);
+                // mMediaInserter = new MediaInserter(mMediaProvider, mPackageName, 500); 
+                /*Begin (Modified by Michael. 2014.06.11)*/	
+				/* quickly updated database */
+				mMediaInserter = new MediaInserter(mMediaProvider, mPackageName, 20); 
+				/*End (Modified by Michael. 2014.06.11)*/	
             }
 
             for (int i = 0; i < directories.length; i++) {

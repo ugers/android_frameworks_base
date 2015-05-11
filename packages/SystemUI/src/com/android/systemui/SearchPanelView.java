@@ -17,11 +17,17 @@
 package com.android.systemui;
 
 import android.animation.LayoutTransition;
+import android.app.ActivityManagerNative;
 import android.app.ActivityOptions;
+import android.app.SearchManager;
+import android.content.ActivityNotFoundException;
+import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.content.res.Resources;
+import android.os.RemoteException;
 import android.database.ContentObserver;
 import android.graphics.Point;
 import android.os.Bundle;
@@ -34,6 +40,8 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.EventLog;
+import android.util.Log;
+import android.view.IWindowManager;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;

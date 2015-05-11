@@ -1348,6 +1348,10 @@ public abstract class HardwareRenderer {
                     Log.e(LOG_TAG, "createWindowSurface returned EGL_BAD_NATIVE_WINDOW.");
                     return false;
                 }
+                if (error == EGL_BAD_ALLOC) {
+                    Log.e(LOG_TAG, "createWindowSurface returned EGL_BAD_ALLOC.");
+                    return false;
+                }
                 throw new RuntimeException("createWindowSurface failed "
                         + GLUtils.getEGLErrorString(error));
             }

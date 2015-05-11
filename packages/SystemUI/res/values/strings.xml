@@ -426,6 +426,10 @@
     <!-- Content description of the clear button in the notification panel for accessibility (not shown on the screen). [CHAR LIMIT=NONE] -->
     <string name="accessibility_clear_all">Clear all notifications.</string>
 
+    <!-- ethernet string  -->
+    <string name="ethernet_link">Ethernet connect to network</string>
+    <string name="ethernet_description">Ethernet</string>
+
     <!-- Title shown in notification popup for inspecting the responsible
          application -->
     <string name="status_bar_notification_inspect_item_title">App info</string>
@@ -499,6 +503,10 @@
     <!-- QuickSettings: Brightness dialog auto brightness button [CHAR LIMIT=NONE] -->
     <string name="quick_settings_brightness_dialog_auto_brightness_label">AUTO</string>
 
+    <!-- QuickSettings: Ethernet [CHAR LIMIT=NONE] -->
+    <string name="quick_settings_ethernet_label">Connected</string>
+    <!-- QuickSettings: Ethernet [CHAR LIMIT=NONE] -->
+    <string name="quick_settings_ethernet_no_connection_label">No Connection</string>
 
     <!-- Glyph to be overlaid atop the battery when the level is extremely low. Do not translate. -->
     <string name="battery_meter_very_low_overlay_symbol">!</string>
@@ -509,4 +517,23 @@
          linebreak to position it correctly.  [CHAR LIMIT=45] -->
     <string name="ssl_ca_cert_warning">Network may\nbe monitored</string>
 
+    <!-- notify devices mounted -->
+    <add-resource type="string" name="usb_mounted_title" />
+    <add-resource type="string" name="usb_mounted_message" />
+    <add-resource type="string" name="sd_mounted_title" />
+    <add-resource type="string" name="sd_mounted_message" />
+    <add-resource type="string" name="usb_nomedia_notification_title" />
+    <add-resource type="string" name="usb_nomedia_notification_message" />
+    <add-resource type="string" name="usb_badremoval_notification_title" />
+    <add-resource type="string" name="usb_badremoval_notification_message" />
+    <string name="usb_mounted_title">usb is mounted</string>
+    <string name="usb_mounted_message">usb is mounted</string>
+    <string name="sd_mounted_title">sdcard is mounted</string>
+    <string name="sd_mounted_message">sdcard is mounted</string>
+    <string name="usb_nomedia_notification_title">Removed USB storage</string>
+    <string name="usb_nomedia_notification_message">USB storage removed. Insert new media.</string>
+    <string name="usb_badremoval_notification_title">USB storage unexpectedly removed</string>
+    <string name="usb_badremoval_notification_message">Unmount USB storage before removing to avoid data loss.</string>
+    <string name="quick_settings_screen_shot_label">Screen shot</string>
+    <string name="quick_settings_screen_record_label">Screen record</string>
 </resources>

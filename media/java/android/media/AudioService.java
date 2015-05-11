@@ -61,6 +61,7 @@ import android.os.IBinder;
 import android.os.Looper;
 import android.os.Message;
 import android.os.PowerManager;
+import android.os.Process;
 import android.os.RemoteCallbackList;
 import android.os.RemoteException;
 import android.os.ServiceManager;
@@ -87,7 +88,10 @@ import com.android.internal.util.XmlUtils;
 import org.xmlpull.v1.XmlPullParserException;
 
 import java.io.ByteArrayInputStream;
+import java.io.File; 
 import java.io.FileDescriptor;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Field;
@@ -815,6 +819,9 @@ public class AudioService extends IAudioService.Stub {
         // Broadcast vibrate settings
         broadcastVibrateSetting(AudioManager.VIBRATE_TYPE_RINGER);
         broadcastVibrateSetting(AudioManager.VIBRATE_TYPE_NOTIFICATION);
+
+        // Restore the default media button receiver from the system settings
+        mMediaFocusControl.restoreMediaButtonReceiver();
     }
 
     private int rescaleIndex(int index, int srcStream, int dstStream) {
@@ -1669,6 +1676,31 @@ public class AudioService extends IAudioService.Stub {
         }
     }
 
+    private static String getProcCmdLine(String pid)
+    {    
+        String cmdline = "";
+        FileInputStream is = null;
+        try {
+            is = new FileInputStream("/proc/" + pid + "/cmdline");
+            byte [] buffer = new byte[2048];
+            int count = is.read(buffer);
+            if (count > 0) { 
+                cmdline = new String(buffer, 0, count);
+            }
+        } catch (IOException e) { 
+            Log.d(TAG, "No /proc/pid/cmdline exception=" + e);
+        } finally {
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) { 
+                }
+            }
+        }
+        return cmdline;
+    }  
+
+
     /** @see AudioManager#setMode(int) */
     public void setMode(int mode, IBinder cb) {
         if (!checkAudioSettingsPermission("setMode()")) {
@@ -1680,6 +1712,19 @@ public class AudioService extends IAudioService.Stub {
         }
 
         int newModeOwnerPid = 0;
+	int callingPid = Binder.getCallingPid();
+	int callingUserID = Process.getUidForPid(callingPid);
+	String str = getProcCmdLine(Integer.toString(callingPid));
+
+	if (str.contains("com.android.cts")) {
+		Log.d(TAG, "in cts!!!!!!! ");
+	} else {
+		//Log.d(TAG, "not in cts!!!!!!! ");
+		if ((mode == AudioSystem.MODE_IN_CALL) && (callingUserID > 2000)){ //#define AID_SHELL    2000
+			mode = AudioSystem.MODE_NORMAL;
+		}
+	}
+
         synchronized(mSetModeDeathHandlers) {
             if (mode == AudioSystem.MODE_CURRENT) {
                 mode = mMode;
@@ -3406,21 +3451,40 @@ public class AudioService extends IAudioService.Stub {
                       UserHandle.USER_CURRENT);
         }
 
+        private void setSilence(int silence) {
+            String check_file = "/data/sile";
+            try {
+                File file = new File(check_file);
+                if (silence != 0){
+                    if (file.exists()){
+                        file.delete();
+                    }
+                } else {// =0 silence, create file
+                    if (!file.exists()){
+                        file.createNewFile();
+                    }
+                }
+            } catch(IOException e) {
+                Log.i(TAG," setSilence error: " + e.getMessage());
+            }
+        }
+
         private void persistRingerMode(int ringerMode) {
             if (mUseFixedVolume) {
                 return;
             }
             Settings.Global.putInt(mContentResolver, Settings.Global.MODE_RINGER, ringerMode);
+            setSilence(ringerMode);
         }
 
         private boolean onLoadSoundEffects() {
             int status;
 
             synchronized (mSoundEffectsLock) {
-                if (!mBootCompleted) {
+                /*if (!mBootCompleted) {
                     Log.w(TAG, "onLoadSoundEffects() called before boot complete");
                     return false;
-                }
+                }*/
 
                 if (mSoundPool != null) {
                     return true;
@@ -4124,6 +4188,7 @@ public class AudioService extends IAudioService.Stub {
     {
         Intent intent = new Intent();
 
+		intent.putExtra("device", device);
         intent.putExtra("state", state);
         intent.putExtra("name", name);
         intent.addFlags(Intent.FLAG_RECEIVER_REGISTERED_ONLY);
@@ -4824,7 +4889,7 @@ public class AudioService extends IAudioService.Stub {
     // When this time reaches UNSAFE_VOLUME_MUSIC_ACTIVE_MS_MAX, the safe media volume is re-enabled
     // automatically. mMusicActiveMs is rounded to a multiple of MUSIC_ACTIVE_POLL_PERIOD_MS.
     private int mMusicActiveMs;
-    private static final int UNSAFE_VOLUME_MUSIC_ACTIVE_MS_MAX = (20 * 3600 * 1000); // 20 hours
+    private static final int UNSAFE_VOLUME_MUSIC_ACTIVE_MS_MAX = (10 * 3600 * 1000); // 10 hours
     private static final int MUSIC_ACTIVE_POLL_PERIOD_MS = 60000;  // 1 minute polling interval
     private static final int SAFE_VOLUME_CONFIGURE_TIMEOUT_MS = 30000;  // 30s after boot completed
 

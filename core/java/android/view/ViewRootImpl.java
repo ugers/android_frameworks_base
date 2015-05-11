@@ -678,9 +678,53 @@ public final class ViewRootImpl implements ViewParent,
         if (mTranslator != null) return;
 
         // Try to enable hardware acceleration if requested
-        final boolean hardwareAccelerated =
+        boolean hardwareAccelerated = 
                 (attrs.flags & WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED) != 0;
+        
+        if( SystemProperties.getBoolean("ro.hwa.force", false) ){
+        	int		index;
+			boolean flag = false;
+    		final String pckname = mContext.getPackageName();
+			final String[]  str = {
+				"com.android.cts.acceleration",
+				"com.tencent.WBlog"
+			};
+			for (String sub : str){
+				index = pckname.indexOf(sub);
+				if(index != -1){
+					flag = true;
+					break;
+				}
+			}    	
+			
+			if (!flag){
+    			hardwareAccelerated= true;
+			}
 
+        }
+	else
+	{
+		int		index;
+		boolean flag = false;
+    		final String pckname = mContext.getPackageName();
+			final String[]  str = {
+				"org.cocos2dx.FishingJoy2",
+			};
+    			for (String sub : str){
+				index = pckname.indexOf(sub);
+				if(index != -1){
+					flag = true;
+					break;
+				}
+			}    	
+			
+			if (flag){
+				hardwareAccelerated= true;
+			}
+
+	}
+
+				
         if (hardwareAccelerated) {
             if (!HardwareRenderer.isAvailable()) {
                 return;

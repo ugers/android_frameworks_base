@@ -281,9 +281,6 @@ android_media_AudioTrack_native_setup(JNIEnv *env, jobject thiz, jobject weak_th
     case AUDIO_STREAM_NOTIFICATION:
     case AUDIO_STREAM_BLUETOOTH_SCO:
     case AUDIO_STREAM_DTMF:
-#ifdef QCOM_HARDWARE
-    case AUDIO_STREAM_INCALL_MUSIC:
-#endif
         atStreamType = (audio_stream_type_t) streamType;
         break;
     default:
@@ -293,16 +290,8 @@ android_media_AudioTrack_native_setup(JNIEnv *env, jobject thiz, jobject weak_th
 
     // check the format.
     // This function was called from Java, so we compare the format against the Java constants
-    if ((audioFormat != ENCODING_PCM_16BIT)
-#ifdef QCOM_HARDWARE
-        && (audioFormat != ENCODING_AMRNB)
-        && (audioFormat != ENCODING_AMRWB)
-        && (audioFormat != ENCODING_EVRC)
-        && (audioFormat != ENCODING_EVRCB)
-        && (audioFormat != ENCODING_EVRCWB)
-        && (audioFormat != ENCODING_EVRCNW)
-#endif
-        && (audioFormat != ENCODING_PCM_8BIT)) {
+    if ((audioFormat != ENCODING_PCM_16BIT) && (audioFormat != ENCODING_PCM_8BIT)) {
+
         ALOGE("Error creating AudioTrack: unsupported audio format.");
         return AUDIOTRACK_ERROR_SETUP_INVALIDFORMAT;
     }
@@ -579,17 +568,7 @@ jint writeToTrack(const sp<AudioTrack>& track, jint audioFormat, jbyte* data,
             written = 0;
         }
     } else {
-#ifdef QCOM_HARDWARE
-        if ((audioFormat == ENCODING_PCM_16BIT)
-        || (audioFormat == ENCODING_AMRNB)
-        || (audioFormat == ENCODING_AMRWB)
-        || (audioFormat == ENCODING_EVRC)
-        || (audioFormat == ENCODING_EVRCB)
-        || (audioFormat == ENCODING_EVRCWB)
-        || (audioFormat == ENCODING_EVRCNW)) {
-#else
         if (audioFormat == ENCODING_PCM_16BIT) {
-#endif
             // writing to shared memory, check for capacity
             if ((size_t)sizeInBytes > track->sharedBuffer()->size()) {
                 sizeInBytes = track->sharedBuffer()->size();
@@ -876,9 +855,6 @@ static jint android_media_AudioTrack_get_output_sample_rate(JNIEnv *env,  jobjec
     case AUDIO_STREAM_NOTIFICATION:
     case AUDIO_STREAM_BLUETOOTH_SCO:
     case AUDIO_STREAM_DTMF:
-#ifdef QCOM_HARDWARE
-    case AUDIO_STREAM_INCALL_MUSIC:
-#endif
         nativeStreamType = (audio_stream_type_t) javaStreamType;
         break;
     default:

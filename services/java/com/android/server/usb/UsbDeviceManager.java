@@ -45,6 +45,7 @@ import android.os.storage.StorageVolume;
 import android.provider.Settings;
 import android.util.Pair;
 import android.util.Slog;
+import android.os.PowerManager;
 
 import com.android.internal.annotations.GuardedBy;
 import com.android.server.FgThread;
@@ -104,6 +105,7 @@ public class UsbDeviceManager {
 
     // Timeout for entering USB request mode.
     // Request is cancelled if host does not configure device within 10 seconds.
+    private static final int USB_CONNECT_MIN_FREQ = 1008000;
     private static final int ACCESSORY_REQUEST_TIMEOUT = 10 * 1000;
 
     private static final String BOOT_MODE_PROPERTY = "ro.bootmode";
@@ -125,7 +127,11 @@ public class UsbDeviceManager {
     private Map<String, List<Pair<String, String>>> mOemModeMap;
     private String[] mAccessoryStrings;
     private UsbDebuggingManager mDebuggingManager;
-
+    private PowerManager.WakeLock wl;
+    private int mLastMinFreq;
+    private int wlref = 0;
+    private int dlref = 0;
+	private boolean mRealTimeState;
     private class AdbSettingsObserver extends ContentObserver {
         public AdbSettingsObserver() {
             super(null);
@@ -172,6 +178,8 @@ public class UsbDeviceManager {
         mHasUsbAccessory = pm.hasSystemFeature(PackageManager.FEATURE_USB_ACCESSORY);
         initRndisAddress();
 
+        PowerManager power = (PowerManager) mContext.getSystemService(Context.POWER_SERVICE);
+        wl = power.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TAG);
         readOemUsbOverrideConfig();
 
         mHandler = new UsbHandler(FgThread.get().getLooper());
@@ -193,10 +201,31 @@ public class UsbDeviceManager {
             mCurrentSettings = settings;
         }
     }
+	public boolean getCurrentmConnectState(){
+		 synchronized (mLock) {
+            return mRealTimeState;
+        }
+	}
 
     private UsbSettingsManager getCurrentSettings() {
         synchronized (mLock) {
             return mCurrentSettings;
+        }
+    }
+ 
+    private void enableWakeLock(boolean enable){
+        if(enable){
+            Slog.d(TAG, "enable "+ TAG +" wakelock"+" wlref = "+ wlref);            
+            if(wlref==0){
+                wlref++;
+                wl.acquire();
+            }            
+        }else{
+            Slog.d(TAG, "disable "+ TAG +" wakelock"+" wlref = "+ wlref);              
+            if(wlref==1){
+                wl.release();
+                wlref--;
+            }
         }
     }
 
@@ -500,8 +529,6 @@ public class UsbDeviceManager {
         }
 
         private void setEnabledFunctions(String functions, boolean makeDefault) {
-            if (DEBUG) Slog.d(TAG, "setEnabledFunctions " + functions
-                    + " makeDefault: " + makeDefault);
 
             // Do not update persystent.sys.usb.config if the device is booted up
             // with OEM specific mode.
@@ -649,12 +676,20 @@ public class UsbDeviceManager {
                 case MSG_UPDATE_STATE:
                     mConnected = (msg.arg1 == 1);
                     mConfigured = (msg.arg2 == 1);
+					mRealTimeState = mConnected;
+                    if(SystemProperties.getBoolean("sys.usb.wakelock",true))
+                            enableWakeLock(mConnected);
+                    else
+                            enableWakeLock(false);		//force release the wakelock while debug!
+                    //enableDPMLock(mConnected);
                     updateUsbNotification();
                     updateAdbNotification();
                     if (containsFunction(mCurrentFunctions,
                             UsbManager.USB_FUNCTION_ACCESSORY)) {
                         updateCurrentAccessory();
-                    } else if (!mConnected) {
+                    }
+
+                    if (!mConnected) {
                         // restore defaults when USB is disconnected
                         setEnabledFunctions(mDefaultFunctions, false);
                     }

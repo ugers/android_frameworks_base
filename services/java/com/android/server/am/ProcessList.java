@@ -263,6 +263,17 @@ final class ProcessList {
             memString.append((mOomMinFree[i]*1024)/PAGE_SIZE);
         }
 
+        if(false && SystemProperties.getBoolean("sys.mem.opt", false)){
+            memString.delete(0,memString.length());
+            memString.append("2048,4096,10052,12100,13868,17126");
+            mOomMinFree[0] = 8192;
+            mOomMinFree[1] = 16368;
+            mOomMinFree[2] = 40208;
+            mOomMinFree[3] = 48400;
+            mOomMinFree[4] = 55474;
+            mOomMinFree[5] = 68504;
+        }
+		
         // Ask the kernel to try to keep enough memory free to allocate 3 full
         // screen 32bpp buffers without entering direct reclaim.
         int reserve = displayWidth * displayHeight * 4 * 3 / 1024;

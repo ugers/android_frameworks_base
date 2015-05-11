@@ -78,4 +78,14 @@ public class NetworkConfig {
     public boolean isDefault() {
         return (type == radio);
     }
+
+    /** @hide */
+    public String toString() {
+        return "{name: " + name
+            + ", type: " + type
+            + ", radio: " + radio
+            + ", priority: " + priority
+            + ", restoreTime: " + restoreTime
+            + ", dependencyMet: " + dependencyMet +"}";
+    }
 }

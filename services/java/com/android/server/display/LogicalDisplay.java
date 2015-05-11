@@ -20,10 +20,10 @@ import android.graphics.Rect;
 import android.view.Display;
 import android.view.DisplayInfo;
 import android.view.Surface;
-
+import android.content.Context;
 import java.io.PrintWriter;
 import java.util.List;
-
+import android.provider.Settings;
 import libcore.util.Objects;
 
 /**

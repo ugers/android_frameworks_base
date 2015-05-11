@@ -83,28 +83,6 @@ public class SpamMessageProvider extends ContentProvider {
         }
     }
 
-    private String getPackageName(long packageId) {
-        String packageName = null;
-
-        Cursor pkgCursor = null;
-        try {
-            pkgCursor = mDbHelper.getReadableDatabase().query(PackageTable.TABLE_NAME,
-                    new String[]{PackageTable.PACKAGE_NAME}, PackageTable.ID + "=?",
-                    new String[]{String.valueOf(packageId)}, null, null, null);
-            if (pkgCursor != null) {
-                if (pkgCursor.moveToFirst()) {
-                    packageName = pkgCursor.getString(0);
-                }
-                pkgCursor.close();
-            }
-        } finally {
-            if (pkgCursor != null) {
-                pkgCursor.close();
-            }
-        }
-        return packageName;
-    }
-
     private long getPackageId(String pkg) {
         long rowId = -1;
         Cursor idCursor = mDbHelper.getReadableDatabase().query(PackageTable.TABLE_NAME,
@@ -180,7 +158,6 @@ public class SpamMessageProvider extends ContentProvider {
         int match = sURIMatcher.match(uri);
         switch (match) {
         case MESSAGE_FOR_ID:
-            String packageName = null;
             int packageId = -1;
             Cursor idCursor = mDbHelper.getReadableDatabase().query(NotificationTable.TABLE_NAME,
                     new String[]{NotificationTable.PACKAGE_ID}, NotificationTable.ID + "=?",
@@ -190,17 +167,11 @@ public class SpamMessageProvider extends ContentProvider {
                     packageId = idCursor.getInt(0);
                 }
                 idCursor.close();
-                packageName = getPackageName(packageId);
             }
             int result = mDbHelper.getWritableDatabase().delete(NotificationTable.TABLE_NAME,
                     NotificationTable.ID + "=?", new String[]{uri.getLastPathSegment()});
             removePackageIfNecessary(packageId);
-            if (packageName != null) {
-                getContext().getContentResolver().notifyChange(
-                        SpamFilter.NOTIFICATION_URI.buildUpon()
-                                .appendPath("delete")
-                                .appendPath(packageName).build(), null);
-            }
+            notifyChange();
             return result;
         default:
             return 0;

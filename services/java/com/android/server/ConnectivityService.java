@@ -55,7 +55,7 @@ import android.database.ContentObserver;
 import android.net.CaptivePortalTracker;
 import android.net.ConnectivityManager;
 import android.net.DummyDataStateTracker;
-import android.net.EthernetDataTracker;
+import android.net.ethernet.EthernetDataTracker;
 import android.net.IConnectivityManager;
 import android.net.INetworkManagementEventObserver;
 import android.net.INetworkPolicyListener;
@@ -571,6 +571,9 @@ public class ConnectivityService extends IConnectivityManager.Stub {
                     continue;
                 }
                 mNetConfigs[n.type] = n;
+                if(VDBG) {
+                    log("mNetConfigs[" + n.type + "]= " + mNetConfigs[n.type].toString());
+                }
                 mNetworksDefined++;
             } catch(Exception e) {
                 // ignore it - leave the entry null
@@ -604,6 +607,10 @@ public class ConnectivityService extends IConnectivityManager.Stub {
                             nextLowest = na.priority;
                         }
                         continue;
+                    }
+
+                    if(VDBG) {
+                        log("mPriorityList[" + insertionPoint + "]= " + na.type);
                     }
                     mPriorityList[insertionPoint--] = na.type;
                 }
@@ -852,6 +859,9 @@ public class ConnectivityService extends IConnectivityManager.Stub {
     }
 
     private void handleSetNetworkPreference(int preference) {
+        if(VDBG) {
+            log("handleSetNetworkPreference(), preference= " + preference);
+        }
         if (ConnectivityManager.isNetworkTypeValid(preference) &&
                 mNetConfigs[preference] != null &&
                 mNetConfigs[preference].isDefault()) {
@@ -859,6 +869,9 @@ public class ConnectivityService extends IConnectivityManager.Stub {
                 final ContentResolver cr = mContext.getContentResolver();
                 Settings.Global.putInt(cr, Settings.Global.NETWORK_PREFERENCE, preference);
                 synchronized(this) {
+                    if(VDBG) {
+                        log("set mNetworkPreference = " + preference);
+                    }
                     mNetworkPreference = preference;
                 }
                 enforcePreference();
@@ -882,8 +895,14 @@ public class ConnectivityService extends IConnectivityManager.Stub {
 
         final int networkPrefSetting = Settings.Global
                 .getInt(cr, Settings.Global.NETWORK_PREFERENCE, -1);
+        if(VDBG) {
+            log("get network preference setting = " + networkPrefSetting);
+        }
+        if (networkPrefSetting != -1) {
+            return networkPrefSetting;
+        }
 
-        return networkPrefSetting;
+        return ConnectivityManager.DEFAULT_NETWORK_PREFERENCE;
     }
 
     /**
@@ -2086,9 +2105,6 @@ public class ConnectivityService extends IConnectivityManager.Stub {
                     log("tryFailover: set mActiveDefaultNetwork=-1, prevNetType=" + prevNetType);
                 }
                 mActiveDefaultNetwork = -1;
-
-                // If there is no active connection then tcp delayed ack params are reset
-                resetTcpDelayedAckSettings(mNetTrackers[prevNetType]);
             }
 
             // don't signal a reconnect for anything lower or equal priority than our
@@ -2315,6 +2331,12 @@ public class ConnectivityService extends IConnectivityManager.Stub {
     };
 
     private boolean isNewNetTypePreferredOverCurrentNetType(int type) {
+        if(VDBG) {
+            log("type= " + type + " != mNetworkPreference= " + mNetworkPreference);
+            log("&& mNetConfigs["+ mActiveDefaultNetwork + "].priority= " + mNetConfigs[mActiveDefaultNetwork].priority
+                + " > mNetConfigs[" + type + "].priority= " + mNetConfigs[type].priority);
+            log("|| mNetworkPreference= " + mNetworkPreference + " == mActiveDefaultNetwork= " + mActiveDefaultNetwork);
+        }
         if (((type != mNetworkPreference)
                       && (mNetConfigs[mActiveDefaultNetwork].priority > mNetConfigs[type].priority))
                    || (mNetworkPreference == mActiveDefaultNetwork)) {
@@ -2325,7 +2347,9 @@ public class ConnectivityService extends IConnectivityManager.Stub {
 
     private void handleConnect(NetworkInfo info) {
         final int newNetType = info.getType();
-
+        if (VDBG) {
+            log("handleConnect(), networkinfo= " + info + "; newNetType= " + newNetType);
+        }
         setupDataActivityTracking(newNetType);
 
         // snapshot isFailover, because sendConnectedBroadcast() resets it
@@ -2340,7 +2364,14 @@ public class ConnectivityService extends IConnectivityManager.Stub {
 
         // if this is a default net and other default is running
         // kill the one not preferred
+        if (VDBG) {
+            log("mNetConfigs[" + newNetType + "].isDefault()= " + mNetConfigs[newNetType].isDefault());
+            log("isFailover= " + isFailover + "; thisIface= " + thisIface);
+        }
         if (mNetConfigs[newNetType].isDefault()) {
+            if (VDBG) {
+                log("mActiveDefaultNetwork=" + mActiveDefaultNetwork + " != -1 && != newNetType= " + newNetType);
+            }
             if (mActiveDefaultNetwork != -1 && mActiveDefaultNetwork != newNetType) {
                 if (isNewNetTypePreferredOverCurrentNetType(newNetType)) {
                     // tear down the other
@@ -2385,12 +2416,9 @@ public class ConnectivityService extends IConnectivityManager.Stub {
             mInetConditionChangeInFlight = false;
             // Don't do this - if we never sign in stay, grey
             //reportNetworkCondition(mActiveDefaultNetwork, 100);
-
-            // Update TCP delayed ACK settings
-            updateTcpDelayedAckSettings(thisNet);
-            updateNetworkSettings(thisNet);
         }
         thisNet.setTeardownRequested(false);
+        updateNetworkSettings(thisNet);
         updateMtuSizeSettings(thisNet);
         handleConnectivityChange(newNetType, false);
         sendConnectedBroadcastDelayed(info, getConnectivityChangeDelay());
@@ -2665,6 +2693,15 @@ public class ConnectivityService extends IConnectivityManager.Stub {
         }
 
         boolean routesChanged = (routeDiff.removed.size() != 0 || routeDiff.added.size() != 0);
+        if(!routesChanged) {
+            log("renew ip, routesChanged is false.");
+            if (newLp != null) {
+                log("renew ip, newLp != null ");
+                routeDiff.added = newLp.getRoutes();
+                dnsDiff.added = newLp.getDnses();
+            }
+        }
+        
 
         for (RouteInfo r : routeDiff.removed) {
             if (isLinkDefault || ! r.isDefaultRoute()) {
@@ -2810,120 +2847,6 @@ public class ConnectivityService extends IConnectivityManager.Stub {
             }
         } catch (IOException e) {
             loge("Can't set tcp buffer sizes:" + e);
-        }
-    }
-
-    /**
-     * [net.tcp.delack.wifi] and set them for system
-     * wide use
-     */
-    private void resetTcpDelayedAckSettings(NetworkStateTracker nt) {
-        String key1 = nt.getDefaultTcpUserConfigPropName();
-        String key2 = nt.getDefaultTcpDelayedAckPropName();
-
-        String defUserCfg = SystemProperties.get(key1);
-        String defDelAck = SystemProperties.get(key2);
-
-        if (TextUtils.isEmpty(defUserCfg) || defUserCfg.length() == 0) {
-            if (DBG) loge(key1+ " not found in system default properties");
-
-            // Setting to default values so we won't be stuck to previous values
-            // Disable user-overridden values to default
-            defUserCfg = "0";
-        }
-        setUserConfig(defUserCfg);
-
-        if(TextUtils.isEmpty(defDelAck) || defDelAck.length() == 0) {
-            if (DBG) loge(key2 + " not found in system default properties");
-
-            // Setting to default values so we won't be stuck to previous values
-            // Disable user-overridden values to default
-            defDelAck= "1";
-        }
-        setDelAckSize(defDelAck);
-    }
-
-    /**
-     * [net.tcp.delack.default] and set them for system
-     * wide use
-     */
-    private void updateTcpDelayedAckSettings(NetworkStateTracker nt) {
-        String key1 = nt.getTcpUserConfigPropName();
-        String key2 = nt.getTcpDelayedAckPropName();
-
-        String userCfg = SystemProperties.get(key1);
-        String delAck = SystemProperties.get(key2);
-
-        if (TextUtils.isEmpty(userCfg)) {
-            if (DBG) loge(key1 + " not found in system properties. Using defaults");
-
-            // Setting to default values so we won't be stuck to previous values
-            key1 = nt.getDefaultTcpUserConfigPropName();
-            userCfg = SystemProperties.get(key1);
-        }
-
-        if (TextUtils.isEmpty(delAck)) {
-            if (DBG) loge(key2 + " not found in system properties. Using defaults");
-
-            // Setting to default values so we won't be stuck to previous values
-            key2 = nt.getDefaultTcpDelayedAckPropName();
-            delAck = SystemProperties.get(key2);
-        }
-
-        // Set values in kernel
-        if (userCfg.length() != 0) {
-            if (DBG) {
-                log("Setting TCP values: [" + userCfg
-                        + "] which comes from [" + key1 + "]");
-            }
-            setUserConfig(userCfg);
-        }
-
-        if (delAck.length() != 0) {
-            if (DBG) {
-                log("Setting TCP values: [" + delAck
-                        + "] which comes from [" + key2 + "]");
-            }
-            setDelAckSize(delAck);
-        }
-    }
-
-    /**
-     * Writes TCP delayed ACK sizes to /sys/net/ipv4/tcp_delack_seg]
-     *
-     */
-    private void setDelAckSize(String delAckSize) {
-        try {
-            final String mProcFile = "/sys/kernel/ipv4/tcp_delack_seg";
-            int delAck = Integer.parseInt(delAckSize);
-
-            if (delAck <= 0 || delAck > 60) {
-               if (DBG) loge(" delAck size is out of range, configuring to default");
-               delAck = 1;
-            }
-
-            FileUtils.stringToFile(mProcFile, delAckSize);
-        } catch (IOException e) {
-            loge("Can't set delayed ACK size:" + e);
-        }
-    }
-
-    /**
-     * Writes TCP user configuration flag to /sys/net/ipv4/tcp_use_usercfg]
-     *
-     */
-    private void setUserConfig(String userConfig) {
-        try {
-            int userCfg = Integer.parseInt(userConfig);
-            final String mProcFile = "/sys/kernel/ipv4/tcp_use_userconfig";
-
-            if (userCfg == 0 || userCfg == 1) {
-                FileUtils.stringToFile(mProcFile, userConfig);
-            } else {
-                loge("Invalid buffersize string: " + userConfig);
-            }
-        } catch (IOException e) {
-            loge("Can't set delayed ACK size:" + e);
         }
     }
 
@@ -3240,10 +3163,7 @@ public class ConnectivityService extends IConnectivityManager.Stub {
                 case NetworkStateTracker.EVENT_NETWORK_SUBTYPE_CHANGED: {
                     info = (NetworkInfo) msg.obj;
                     int type = info.getType();
-                    if (mNetConfigs[type].isDefault()) {
-                        updateNetworkSettings(mNetTrackers[type]);
-                        updateTcpDelayedAckSettings(mNetTrackers[type]);
-                    }
+                    updateNetworkSettings(mNetTrackers[type]);
                     break;
                 }
             }
@@ -4626,7 +4546,7 @@ public class ConnectivityService extends IConnectivityManager.Stub {
                             // CMP_RESULT_CODE_NO_TCP_CONNECTION. We could change this, but by
                             // having http second we will be using logic used for some time.
                             URL newUrl;
-                            String scheme = "http";
+                            String scheme = (addrTried <= (MAX_LOOPS/2)) ? "https" : "http";
                             newUrl = new URL(scheme, hostAddr.getHostAddress(),
                                         orgUri.getPath());
                             log("isMobileOk: newUrl=" + newUrl);

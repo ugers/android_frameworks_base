@@ -73,6 +73,9 @@ public class SurfaceControl {
             IBinder displayToken, SurfaceControl.PhysicalDisplayInfo outInfo);
     private static native void nativeBlankDisplay(IBinder displayToken);
     private static native void nativeUnblankDisplay(IBinder displayToken);
+    private static native int nativeSetDisplayParameter(
+            IBinder displayToken, int cmd, int para0, int para1, int para2);
+     
 
 
     private final CloseGuard mCloseGuard = CloseGuard.get();
@@ -619,6 +622,15 @@ public class SurfaceControl {
         }
         nativeScreenshot(display, consumer, width, height, minLayer, maxLayer, allLayers);
     }
+
+ /** @hide */
+    public static int setDisplayParameter(IBinder displayToken, int cmd, int para0, int para1, int para2) {
+        if (displayToken == null) {
+            throw new IllegalArgumentException("displayToken must not be null");
+        }
+        return nativeSetDisplayParameter(displayToken, cmd, para0, para1, para2);
+    }
+
 
     private static void checkHeadless() {
         if (HEADLESS) {

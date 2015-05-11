@@ -261,6 +261,10 @@ class QuickSettingsModel implements BluetoothStateChangeCallback,
     private RefreshCallback mRemoteDisplayCallback;
     private State mRemoteDisplayState = new State();
 
+    private QuickSettingsTileView mEthernetTile;
+    private RefreshCallback mEthernetCallback;
+    private State mEthernetState = new State();
+
     private QuickSettingsTileView mRSSITile;
     private RefreshCallback mRSSICallback;
     private RSSIState mRSSIState = new RSSIState();
@@ -373,6 +377,25 @@ class QuickSettingsModel implements BluetoothStateChangeCallback,
         mUserCallback.refreshView(mUserTile, mUserState);
     }
 
+    
+    // Ethernet
+    void addEthernetTile(QuickSettingsTileView view, RefreshCallback cb) {
+        mEthernetTile = view;
+        mEthernetCallback = cb;
+    }
+    public void onEthernetStateChanged(boolean on) {
+        mEthernetState.enabled = on;
+        if (on) {
+            mEthernetState.label = mContext.getString(R.string.quick_settings_ethernet_label);
+            mEthernetState.iconId = R.drawable.ic_qs_ethernet_established;
+        } else {
+            mEthernetState.label = mContext.getString(
+                    R.string.quick_settings_ethernet_no_connection_label);
+            mEthernetState.iconId = R.drawable.ic_qs_ethernet_error;
+        }
+        mEthernetCallback.refreshView(mEthernetTile, mEthernetState);
+    }
+    
     // Time
     void addTimeTile(QuickSettingsTileView view, RefreshCallback cb) {
         mTimeTile = view;

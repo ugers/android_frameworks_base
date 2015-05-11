@@ -966,7 +966,8 @@ class MountService extends IMountService.Stub
             if (!state.equals(
                     Environment.MEDIA_BAD_REMOVAL) && !state.equals(
                             Environment.MEDIA_NOFS) && !state.equals(
-                                    Environment.MEDIA_UNMOUNTABLE) && !getUmsEnabling()) {
+                                    Environment.MEDIA_UNMOUNTABLE) && !state.equals(
+                                            Environment.MEDIA_REMOVED) && !getUmsEnabling()) {
                 if (DEBUG_EVENTS) Slog.i(TAG, "updating volume state for media bad removal nofs and unmountable");
                 updatePublicVolumeState(volume, Environment.MEDIA_UNMOUNTED);
                 action = Intent.ACTION_MEDIA_UNMOUNTED;
@@ -1083,9 +1084,7 @@ class MountService extends IMountService.Stub
         Runtime.getRuntime().gc();
 
         // Redundant probably. But no harm in updating state again.
-        if (isPrimaryStorage(path)) {
-            mPms.updateExternalMediaStatus(false, false);
-        }
+        mPms.updateExternalMediaStatus(false, false);
         try {
             final Command cmd = new Command("volume", "unmount", path);
             if (removeEncryption) {
@@ -1272,9 +1271,9 @@ class MountService extends IMountService.Stub
                             " allowMassStorage: " + allowMassStorage +
                             " maxFileSize: " + maxFileSize);
 
-                    if (emulated && primary) {
-                        // For devices with emulated primary storage,
-                        // we create separate volumes for each known user.
+                    if (emulated) {
+                        // For devices with emulated storage, we create separate
+                        // volumes for each known user.
                         mEmulatedTemplate = new StorageVolume(null, descriptionId, true, false,
                                 true, mtpReserve, false, maxFileSize, null);
 
@@ -1306,11 +1305,11 @@ class MountService extends IMountService.Stub
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
-            // Compute storage ID for each physical volume;
-            // Primary emulated storage is always 0 when defined.
+            // Compute storage ID for each physical volume; emulated storage is
+            // always 0 when defined.
             int index = isExternalStorageEmulated() ? 1 : 0;
             for (StorageVolume volume : mVolumes) {
-                if (!(volume.isEmulated() && volume.isPrimary())) {
+                if (!volume.isEmulated()) {
                     volume.setStorageId(index++);
                 }
             }
@@ -1344,7 +1343,23 @@ class MountService extends IMountService.Stub
 
     private void addVolumeLocked(StorageVolume volume) {
         Slog.d(TAG, "addVolumeLocked() " + volume);
-        mVolumes.add(volume);
+        //mVolumes.add(volume);
+
+        int index = -1;
+        if (volume.getPath().startsWith("/storage/emulated/")) {
+            for (int i = 0; i < mVolumes.size(); i++) {
+                if (mVolumes.get(i).getPath().startsWith("/storage/emulated/") == false){
+                    index = i;
+                    break;
+                }
+            }
+        }
+        if (index >= 0 && index < mVolumes.size()) {
+            mVolumes.add(index, volume);
+        } else {
+            mVolumes.add(volume);
+        }
+        
         final StorageVolume existing = mVolumesByPath.put(volume.getPath(), volume);
         if (existing != null) {
             throw new IllegalStateException(
@@ -1582,7 +1597,8 @@ class MountService extends IMountService.Stub
              */
             String vs = getVolumeState(path);
             String method = "ums";
-            if (enable && vs.equals(Environment.MEDIA_MOUNTED)) {
+        //if (enable && vs.equals(Environment.MEDIA_MOUNTED)) {
+        if (enable) {
                 // Override for isUsbMassStorageEnabled()
                 setUmsEnabling(enable);
                 UmsEnableCallBack umscb = new UmsEnableCallBack(path, method, true);

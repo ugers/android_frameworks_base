@@ -18,9 +18,11 @@
 
 package com.android.systemui.statusbar;
 
+import android.os.SystemProperties;
 import android.content.Context;
 import android.util.AttributeSet;
 import android.util.Log;
+import java.util.Properties;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.accessibility.AccessibilityEvent;
@@ -47,19 +49,17 @@ public class SignalClusterView
     private int mSignalClusterStyle = STYLE_NORMAL;
     private boolean mWifiVisible = false;
     private int mWifiStrengthId = 0, mWifiActivityId = 0;
+    private boolean mEthernetVisible = false;
+    private int mEthernetStateId = 0, mEthernetActivityId = 0;
     private boolean mMobileVisible = false;
     private int mMobileStrengthId = 0, mMobileActivityId = 0;
-    private int mMobileTypeId = 0, mNoSimIconId = 0;
+    private int mMobileTypeId = 0;
     private boolean mIsAirplaneMode = false;
     private int mAirplaneIconId = 0;
-    private String mWifiDescription, mMobileDescription, mMobileTypeDescription,
-            mEthernetDescription;
-    private boolean mEthernetVisible = false;
-    private int mEthernetIconId = 0;
+    private String mWifiDescription, mMobileDescription, mMobileTypeDescription, mEthernetDescription;
 
-    ViewGroup mWifiGroup, mMobileGroup;
-    ImageView mWifi, mMobile, mWifiActivity, mMobileActivity, mMobileType, mAirplane, mNoSimSlot,
-        mEthernet;
+    ViewGroup mWifiGroup, mMobileGroup, mEthernetGroup;
+    ImageView mWifi, mMobile, mWifiActivity, mMobileActivity, mMobileType, mAirplane,mEthernet;
     View mSpacer;
 
     public SignalClusterView(Context context) {
@@ -90,10 +90,10 @@ public class SignalClusterView
         mMobile         = (ImageView) findViewById(R.id.mobile_signal);
         mMobileActivity = (ImageView) findViewById(R.id.mobile_inout);
         mMobileType     = (ImageView) findViewById(R.id.mobile_type);
-        mNoSimSlot      = (ImageView) findViewById(R.id.no_sim);
         mSpacer         =             findViewById(R.id.spacer);
         mAirplane       = (ImageView) findViewById(R.id.airplane);
-        mEthernet       = (ImageView) findViewById(R.id.ethernet);
+        mEthernetGroup  = (ViewGroup) findViewById(R.id.ethernet_combo);
+        mEthernet       = (ImageView) findViewById(R.id.ethernet_state);
 
         apply();
     }
@@ -107,9 +107,9 @@ public class SignalClusterView
         mMobile         = null;
         mMobileActivity = null;
         mMobileType     = null;
-        mNoSimSlot      = null;
         mSpacer         = null;
         mAirplane       = null;
+        mEthernetGroup  = null;
         mEthernet       = null;
 
         super.onDetachedFromWindow();
@@ -127,16 +127,29 @@ public class SignalClusterView
     }
 
     @Override
+    public void setEthernetIndicators(boolean visible, int strengthIcon, int activityIcon,
+                    String contentDescription) {
+        mEthernetVisible = visible;
+        mEthernetStateId = strengthIcon;
+        mEthernetActivityId = activityIcon;
+        mEthernetDescription = contentDescription;
+        if(mEthernetDescription == null || mEthernetDescription.isEmpty()) {
+            mEthernetDescription = "Ethernet";
+            if(DEBUG)
+                Log.d(TAG, "mEthernetDescription is empty.");
+        }
+        apply();
+    }
+
+    @Override
     public void setMobileDataIndicators(boolean visible, int strengthIcon, int activityIcon,
-            int typeIcon, String contentDescription, String typeContentDescription,
-            int noSimIcon) {
+            int typeIcon, String contentDescription, String typeContentDescription) {
         mMobileVisible = visible;
         mMobileStrengthId = strengthIcon;
         mMobileActivityId = activityIcon;
         mMobileTypeId = typeIcon;
         mMobileDescription = contentDescription;
         mMobileTypeDescription = typeContentDescription;
-        mNoSimIconId = noSimIcon;
 
         apply();
     }
@@ -145,16 +158,6 @@ public class SignalClusterView
     public void setIsAirplaneMode(boolean is, int airplaneIconId) {
         mIsAirplaneMode = is;
         mAirplaneIconId = airplaneIconId;
-
-        apply();
-    }
-
-    @Override
-    public void setEthernetIndicators(boolean visible, int ethernetIcon,
-            String contentDescription) {
-        mEthernetVisible = visible;
-        mEthernetIconId = ethernetIcon;
-        mEthernetDescription = contentDescription;
 
         apply();
     }
@@ -195,10 +198,6 @@ public class SignalClusterView
             mAirplane.setImageDrawable(null);
         }
 
-        if(mEthernet != null) {
-            mEthernet.setImageDrawable(null);
-        }
-
         apply();
     }
 
@@ -221,14 +220,30 @@ public class SignalClusterView
                     (mWifiVisible ? "VISIBLE" : "GONE"),
                     mWifiStrengthId, mWifiActivityId));
 
+        if(mEthernetVisible){
+            mEthernetGroup.setVisibility(View.VISIBLE);
+            mEthernet.setImageResource(mEthernetStateId);
+            mEthernetGroup.setContentDescription(mEthernetDescription);
+        } else {
+            mEthernetGroup.setVisibility(View.GONE);
+        }
+
+        if (DEBUG) Log.d(TAG,
+                String.format("eth: %s sig=%d act=%d",
+                    (mEthernetVisible ? "VISIBLE" : "GONE"),
+                    mEthernetStateId, mEthernetActivityId));
+
         if (mMobileVisible && !mIsAirplaneMode) {
             mMobile.setImageResource(mMobileStrengthId);
             mMobileActivity.setImageResource(mMobileActivityId);
             mMobileType.setImageResource(mMobileTypeId);
 
             mMobileGroup.setContentDescription(mMobileTypeDescription + " " + mMobileDescription);
+            if(SystemProperties.get("ro.sw.embeded.telephony").equals("false")){
+            	mMobile.setVisibility(mMobileStrengthId != R.drawable.stat_sys_signal_null ? View.VISIBLE : View.GONE);
+    					mMobileType.setVisibility(mMobileStrengthId != R.drawable.stat_sys_signal_null ? View.VISIBLE : View.GONE);
+    		}
             mMobileGroup.setVisibility(View.VISIBLE);
-            mNoSimSlot.setImageResource(mNoSimIconId);
         } else {
             mMobileGroup.setVisibility(View.GONE);
         }
@@ -240,19 +255,10 @@ public class SignalClusterView
             mAirplane.setVisibility(View.GONE);
         }
 
-        if (mMobileVisible && mWifiVisible &&
-                ((mIsAirplaneMode) || (mNoSimIconId != 0))) {
+        if (mMobileVisible && (mMobileStrengthId != R.drawable.stat_sys_signal_null) && (mWifiVisible && (mWifiStrengthId == R.drawable.stat_sys_wifi_signal_null) || mEthernetVisible) && !mIsAirplaneMode) {
             mSpacer.setVisibility(View.INVISIBLE);
         } else {
             mSpacer.setVisibility(View.GONE);
-        }
-
-        if (mEthernetVisible) {
-            mEthernet.setVisibility(View.VISIBLE);
-            mEthernet.setImageResource(mEthernetIconId);
-            mEthernet.setContentDescription(mEthernetDescription);
-        } else {
-            mEthernet.setVisibility(View.GONE);
         }
 
         if (DEBUG) Log.d(TAG,
@@ -261,9 +267,7 @@ public class SignalClusterView
                     mMobileStrengthId, mMobileActivityId, mMobileTypeId));
 
         mMobileType.setVisibility(
-                !mWifiVisible ? View.VISIBLE : View.GONE);
-
-        updateVisibilityForStyle();
+                !(mWifiVisible && (mWifiStrengthId != R.drawable.stat_sys_wifi_signal_null) || mEthernetVisible)? View.VISIBLE : View.GONE);
     }
 
     public void setStyle(int style) {

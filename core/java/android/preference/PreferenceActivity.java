@@ -1225,10 +1225,10 @@ public abstract class PreferenceActivity extends ListActivity implements
     private void switchToHeaderInner(String fragmentName, Bundle args, int direction) {
         getFragmentManager().popBackStack(BACK_STACK_PREFS,
                 FragmentManager.POP_BACK_STACK_INCLUSIVE);
-        if (!isValidFragment(fragmentName)) {
-            throw new IllegalArgumentException("Invalid fragment for this activity: "
-                    + fragmentName);
-        }
+        //if (!isValidFragment(fragmentName)) {
+        //    throw new IllegalArgumentException("Invalid fragment for this activity: "
+        //            + fragmentName);
+        //}
         Fragment f = Fragment.instantiate(this, fragmentName, args);
         FragmentTransaction transaction = getFragmentManager().beginTransaction();
         transaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);

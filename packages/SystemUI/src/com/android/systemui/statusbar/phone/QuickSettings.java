@@ -40,6 +40,9 @@ import android.graphics.drawable.Drawable;
 import android.hardware.display.DisplayManager;
 import android.media.MediaRouter;
 import android.net.wifi.WifiManager;
+import android.net.ethernet.EthernetManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.RemoteException;
@@ -77,6 +80,16 @@ import com.android.systemui.statusbar.policy.RotationLockController;
 
 import java.util.ArrayList;
 
+import android.content.ServiceConnection;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.Environment;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import static libcore.io.OsConstants.*;
+
 /**
  *
  */
@@ -97,6 +110,9 @@ class QuickSettings {
     private BluetoothState mBluetoothState;
     private BluetoothAdapter mBluetoothAdapter;
     private WifiManager mWifiManager;
+
+    private ConnectivityManager mCm;
+    private boolean mEthernetConnected;
 
     private BluetoothController mBluetoothController;
     private RotationLockController mRotationLockController;
@@ -127,6 +143,17 @@ class QuickSettings {
 
         mHandler = new Handler();
 
+        mCm = (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if(mCm != null) {
+            NetworkInfo networkinfo = mCm.getNetworkInfo(ConnectivityManager.TYPE_ETHERNET);
+            if(networkinfo.isConnected()) {
+                mEthernetConnected = true;
+            } else {
+                mEthernetConnected = false;
+            }
+        } else
+            mEthernetConnected = false;
+
         IntentFilter filter = new IntentFilter();
         filter.addAction(DisplayManager.ACTION_WIFI_DISPLAY_STATUS_CHANGED);
         filter.addAction(BluetoothAdapter.ACTION_CONNECTION_STATE_CHANGED);
@@ -134,6 +161,7 @@ class QuickSettings {
         filter.addAction(Intent.ACTION_USER_SWITCHED);
         filter.addAction(Intent.ACTION_CONFIGURATION_CHANGED);
         filter.addAction(KeyChain.ACTION_STORAGE_CHANGED);
+        filter.addAction(EthernetManager.NETWORK_STATE_CHANGED_ACTION);
         mContext.registerReceiver(mReceiver, filter);
 
         IntentFilter profileFilter = new IntentFilter();
@@ -169,7 +197,7 @@ class QuickSettings {
         setupQuickSettings();
         updateResources();
         applyLocationEnabledStatus();
-
+        updateEthernetStatus();
         networkController.addNetworkSignalChangedCallback(mModel);
         bluetoothController.addStateChangedCallback(mModel);
         batteryController.addStateChangedCallback(mModel);
@@ -699,6 +727,27 @@ class QuickSettings {
                         .setShowWhenEnabled(true));
         parent.addView(remoteDisplayTile);
 
+        // Ethernet
+        QuickSettingsTileView ethernetTile = (QuickSettingsTileView)
+                inflater.inflate(R.layout.quick_settings_tile, parent, false);
+        ethernetTile.setContent(R.layout.quick_settings_tile_ethernet, inflater);
+        ethernetTile.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startSettingsActivity(android.provider.Settings.ACTION_ETHERNET_SETTINGS);
+            }
+        });
+        mModel.addEthernetTile(ethernetTile, new QuickSettingsModel.RefreshCallback() {
+            @Override
+            public void refreshView(QuickSettingsTileView view, State state) {
+                TextView tv = (TextView) view.findViewById(R.id.ethernet_textview);
+                tv.setText(state.label);
+                tv.setCompoundDrawablesWithIntrinsicBounds(0, state.iconId, 0, 0);
+                view.setVisibility(state.enabled ? View.VISIBLE : View.GONE);
+            }
+        });
+        parent.addView(ethernetTile);
+
         if (SHOW_IME_TILE || DEBUG_GONE_TILES) {
             // IME
             final QuickSettingsBasicTile imeTile
@@ -832,6 +881,25 @@ class QuickSettings {
         dialog.show();
     }
 
+    private void updateEthernetStatus() {
+        mCm = (ConnectivityManager) mContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if(mCm != null) {
+            NetworkInfo networkinfo = mCm.getNetworkInfo(ConnectivityManager.TYPE_ETHERNET);
+            if(networkinfo.isConnected()) {
+                mEthernetConnected = true;
+            } else {
+                mEthernetConnected = false;
+            }
+        } else
+            mEthernetConnected = false;
+
+        applyEthernetStatus();
+    }
+
+    private void applyEthernetStatus() {
+        mModel.onEthernetStateChanged(mEthernetConnected);
+    }
+
     private void applyBluetoothStatus() {
         mModel.onBluetoothStateChange(mBluetoothState);
     }
@@ -865,6 +933,11 @@ class QuickSettings {
                         BluetoothAdapter.STATE_DISCONNECTED);
                 mBluetoothState.connected = (status == BluetoothAdapter.STATE_CONNECTED);
                 applyBluetoothStatus();
+            } else if(EthernetManager.NETWORK_STATE_CHANGED_ACTION.equals(action)){
+                final NetworkInfo networkInfo =
+                            (NetworkInfo) intent.getParcelableExtra(EthernetManager.EXTRA_NETWORK_INFO);
+                mEthernetConnected = networkInfo != null && networkInfo.isConnected();
+                applyEthernetStatus();
             } else if (Intent.ACTION_USER_SWITCHED.equals(action)) {
                 reloadUserInfo();
             } else if (Intent.ACTION_CONFIGURATION_CHANGED.equals(action)) {

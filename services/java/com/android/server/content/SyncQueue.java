@@ -76,6 +76,7 @@ public class SyncQueue {
                     op.expedited ? -1: 0 /* delay */, 0 /* flex */, backoff != null ? backoff.first : 0,
                     mSyncStorageEngine.getDelayUntilTime(op.account, op.userId, op.authority),
                     syncAdapterInfo.type.allowParallelSyncs());
+            //syncOperation.expedited = op.expedited;
             syncOperation.pendingOperation = op;
             add(syncOperation, op);
         }
@@ -103,6 +104,7 @@ public class SyncQueue {
         if (existingOperation != null) {
             boolean changed = false;
             if (operation.compareTo(existingOperation) <= 0 ) {
+                //existingOperation.expedited = operation.expedited;
                 long newRunTime =
                         Math.min(existingOperation.latestRunTime, operation.latestRunTime);
                 // Take smaller runtime.

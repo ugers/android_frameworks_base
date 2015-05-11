@@ -171,6 +171,7 @@ class ServerThread {
         Object qcCon = null;
         WifiP2pService wifiP2p = null;
         WifiService wifi = null;
+        EthernetService ethernet = null;
         NsdService serviceDiscovery= null;
         IPackageManager pm = null;
         Context context = null;
@@ -566,6 +567,14 @@ class ServerThread {
                     reportWtf("starting Wi-Fi Service", e);
                 }
 
+                try {
+                	   Slog.i(TAG, "Ethernet Service");
+                	   ethernet = new EthernetService(context);
+                	   ServiceManager.addService(Context.ETHERNET_SERVICE, ethernet);
+                } catch (Throwable e) {
+                     reportWtf("starting Ethernet Service", e);
+                }
+				
                try {
                    int enableCne = 1;
                    if (!deviceHasSufficientMemory()) {
@@ -598,13 +607,12 @@ class ServerThread {
                                networkStats, networkPolicy);
                    }
 
-                   if (connectivity != null) {
                        ServiceManager.addService(Context.CONNECTIVITY_SERVICE, connectivity);
                        networkStats.bindConnectivityManager(connectivity);
                        networkPolicy.bindConnectivityManager(connectivity);
-                       wifi.checkAndStartWifi();
+
                        wifiP2p.connectivityServiceReady();
-                   }
+                    wifi.checkAndStartWifi();
                } catch (Throwable e) {
                    reportWtf("starting Connectivity Service", e);
                }
@@ -873,7 +881,7 @@ class ServerThread {
                 }
             }
 
-            if (!disableNonCoreServices &&
+            if (!disableNonCoreServices && 
                 context.getResources().getBoolean(R.bool.config_dreamsSupported)) {
                 try {
                     Slog.i(TAG, "Dreams Service");

@@ -50,6 +50,16 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import android.content.ContentResolver;
+import android.content.Intent;
+import android.database.ContentObserver;
+import android.provider.Settings;
+import android.provider.Settings.SettingNotFoundException;
+import android.view.Surface;
+import android.os.SystemProperties;
+import android.view.SurfaceControl;
+//import android.os.DynamicPManager;
+
 /**
  * Manages attached displays.
  * <p>
@@ -1326,6 +1336,22 @@ public final class DisplayManagerService extends IDisplayManager.Stub {
                         + mPid + " that displays changed, assuming it died.", ex);
                 binderDied();
             }
+        }
+    }
+
+    @Override // Binder call
+    public int setDisplayParameter(int displaytype, int cmd, int para0, int para1, int para2) {
+        IBinder displayToken = null;
+        if( Display.TYPE_BUILT_IN == displaytype) {
+            displayToken = SurfaceControl.getBuiltInDisplay(SurfaceControl.BUILT_IN_DISPLAY_ID_MAIN);
+        } else if( Display.TYPE_HDMI == displaytype) {
+            displayToken = SurfaceControl.getBuiltInDisplay(SurfaceControl.BUILT_IN_DISPLAY_ID_HDMI);
+        }
+		
+        if (displayToken != null) {
+            return SurfaceControl.setDisplayParameter(displayToken, cmd, para0, para1, para2);
+        } else {
+            return -1;
         }
     }
 }

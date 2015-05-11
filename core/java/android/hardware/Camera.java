@@ -5209,4 +5209,6 @@ public class Camera {
          }
          /* ### QC ADD-ONS: END */
     };
+    // Allwinner platform - set video screen
+    public static native int setCameraScreen(int screen);
 }

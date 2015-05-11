@@ -51,21 +51,14 @@ public class MediaFile {
     public static final int FILE_TYPE_AAC     = 8;
     public static final int FILE_TYPE_MKA     = 9;
     public static final int FILE_TYPE_FLAC    = 10;
+    public static final int FILE_TYPE_AC3     = 11;
+    public static final int FILE_TYPE_MP1     = 12;
+    public static final int FILE_TYPE_MP2     = 13;
+    public static final int FILE_TYPE_APE     = 14;
+    public static final int FILE_TYPE_DTS     = 15;
+    public static final int FILE_TYPE_RA      = 16;
     private static final int FIRST_AUDIO_FILE_TYPE = FILE_TYPE_MP3;
-    private static final int LAST_AUDIO_FILE_TYPE = FILE_TYPE_FLAC;
-
-    // More audio file types
-    public static final int FILE_TYPE_DTS   = 300;
-    public static final int FILE_TYPE_3GPA  = 301;
-    public static final int FILE_TYPE_AC3   = 302;
-    public static final int FILE_TYPE_QCP   = 303;
-    public static final int FILE_TYPE_PCM   = 304;
-    public static final int FILE_TYPE_EC3   = 305;
-    public static final int FILE_TYPE_APE   = 306;
-    public static final int FILE_TYPE_WEBMA = 307;
-
-    private static final int FIRST_AUDIO_FILE_TYPE2 = FILE_TYPE_DTS;
-    private static final int LAST_AUDIO_FILE_TYPE2 = FILE_TYPE_WEBMA;
+    private static final int LAST_AUDIO_FILE_TYPE = FILE_TYPE_RA;
 
     // MIDI file types
     public static final int FILE_TYPE_MID     = 11;
@@ -90,13 +83,11 @@ public class MediaFile {
     
     // More video file types
     public static final int FILE_TYPE_MP2PS   = 200;
-    public static final int FILE_TYPE_DIVX    = 201;
-    public static final int FILE_TYPE_FLV     = 202;
-    public static final int FILE_TYPE_RV      = 203;
-    public static final int FILE_TYPE_VC1     = 204;
-
+    public static final int FILE_TYPE_CEDARV  = 201;
     private static final int FIRST_VIDEO_FILE_TYPE2 = FILE_TYPE_MP2PS;
-    private static final int LAST_VIDEO_FILE_TYPE2 = FILE_TYPE_VC1;
+    private static final int LAST_VIDEO_FILE_TYPE2 = FILE_TYPE_CEDARV;
+    // More audio file types
+    private static final int FILE_TYPE_CEDARA = 300;
 
     // Image file types
     public static final int FILE_TYPE_JPEG    = 31;
@@ -113,10 +104,9 @@ public class MediaFile {
     public static final int FILE_TYPE_PLS      = 42;
     public static final int FILE_TYPE_WPL      = 43;
     public static final int FILE_TYPE_HTTPLIVE = 44;
-    public static final int FILE_TYPE_DASH     = 45;
 
     private static final int FIRST_PLAYLIST_FILE_TYPE = FILE_TYPE_M3U;
-    private static final int LAST_PLAYLIST_FILE_TYPE = FILE_TYPE_DASH;
+    private static final int LAST_PLAYLIST_FILE_TYPE = FILE_TYPE_HTTPLIVE;
 
     // Drm file types
     public static final int FILE_TYPE_FL      = 51;
@@ -198,22 +188,24 @@ public class MediaFile {
         addFileType("MPGA", FILE_TYPE_MP3, "audio/mpeg", MtpConstants.FORMAT_MP3);
         addFileType("M4A", FILE_TYPE_M4A, "audio/mp4", MtpConstants.FORMAT_MPEG);
         addFileType("WAV", FILE_TYPE_WAV, "audio/x-wav", MtpConstants.FORMAT_WAV);
-        addFileType("WAV", FILE_TYPE_PCM, "audio/wav");
         addFileType("AMR", FILE_TYPE_AMR, "audio/amr");
-        addFileType("AWB", FILE_TYPE_AWB, "audio/amr-wb");
+        addFileType("APE", FILE_TYPE_APE, "audio/ape");
+        addFileType("AC3", FILE_TYPE_AC3, "audio/ac3");
+        addFileType("MP1", FILE_TYPE_MP1, "audio/mp1");
+        addFileType("MP2", FILE_TYPE_MP2, "audio/mp2");
+        addFileType("DTS", FILE_TYPE_MP2, "audio/dts");
+        addFileType("M4R", FILE_TYPE_MP2, "audio/m4r");
+        addFileType("RA",  FILE_TYPE_RA, "audio/cedara");
+        
         if (isWMAEnabled()) {
             addFileType("WMA", FILE_TYPE_WMA, "audio/x-ms-wma", MtpConstants.FORMAT_WMA);
         }
-        addFileType("QCP", FILE_TYPE_QCP, "audio/qcelp");
         addFileType("OGG", FILE_TYPE_OGG, "audio/ogg", MtpConstants.FORMAT_OGG);
         addFileType("OGG", FILE_TYPE_OGG, "application/ogg", MtpConstants.FORMAT_OGG);
-        addFileType("OGA", FILE_TYPE_OGG, "audio/ogg", MtpConstants.FORMAT_OGG);
         addFileType("OGA", FILE_TYPE_OGG, "application/ogg", MtpConstants.FORMAT_OGG);
         addFileType("AAC", FILE_TYPE_AAC, "audio/aac", MtpConstants.FORMAT_AAC);
         addFileType("AAC", FILE_TYPE_AAC, "audio/aac-adts", MtpConstants.FORMAT_AAC);
         addFileType("MKA", FILE_TYPE_MKA, "audio/x-matroska");
-        addFileType("AC3", FILE_TYPE_AC3, "audio/ac3");
-        addFileType("APE", FILE_TYPE_APE, "audio/x-ape");
  
         addFileType("MID", FILE_TYPE_MID, "audio/midi");
         addFileType("MIDI", FILE_TYPE_MID, "audio/midi");
@@ -229,7 +221,6 @@ public class MediaFile {
         addFileType("MPG", FILE_TYPE_MP4, "video/mpeg", MtpConstants.FORMAT_MPEG);
         addFileType("MP4", FILE_TYPE_MP4, "video/mp4", MtpConstants.FORMAT_MPEG);
         addFileType("M4V", FILE_TYPE_M4V, "video/mp4", MtpConstants.FORMAT_MPEG);
-        addFileType("MOV", FILE_TYPE_MP4, "video/quicktime", MtpConstants.FORMAT_MPEG);
         addFileType("3GP", FILE_TYPE_3GPP, "video/3gpp",  MtpConstants.FORMAT_3GP_CONTAINER);
         addFileType("3GPP", FILE_TYPE_3GPP, "video/3gpp", MtpConstants.FORMAT_3GP_CONTAINER);
         addFileType("3G2", FILE_TYPE_3GPP2, "video/3gpp2", MtpConstants.FORMAT_3GP_CONTAINER);
@@ -237,13 +228,20 @@ public class MediaFile {
         addFileType("MKV", FILE_TYPE_MKV, "video/x-matroska");
         addFileType("WEBM", FILE_TYPE_WEBM, "video/webm");
         addFileType("TS", FILE_TYPE_MP2TS, "video/mp2ts");
-        addFileType("MPG", FILE_TYPE_MP2TS, "video/mp2ts");
+		addFileType("TP", FILE_TYPE_MP2TS, "video/mp2ts");
+		addFileType("M2TS",FILE_TYPE_MP2TS, "video/mp2ts");
         addFileType("AVI", FILE_TYPE_AVI, "video/avi");
-        addFileType("DIVX", FILE_TYPE_DIVX, "video/divx");
-        addFileType("FLV", FILE_TYPE_FLV, "video/x-flv");
-        addFileType("RM", FILE_TYPE_RV, "video/vnd.rn-realvideo");
-        addFileType("RMVB", FILE_TYPE_RV, "video/vnd.rn-realvideo");
-        addFileType("VC1", FILE_TYPE_VC1, "video/vc1");
+        
+		addFileType("RMVB",FILE_TYPE_CEDARV, "video/cedarx");
+		addFileType("RM",  FILE_TYPE_CEDARV, "video/cedarx");
+		addFileType("AVI", FILE_TYPE_CEDARV, "video/cedarx");
+		addFileType("MOV", FILE_TYPE_CEDARV, "video/cedarx");
+		addFileType("FLV", FILE_TYPE_CEDARV, "video/cedarx");
+		addFileType("F4V", FILE_TYPE_CEDARV, "video/cedarx");
+		addFileType("VOB", FILE_TYPE_CEDARV, "video/cedarx");
+		addFileType("PMP", FILE_TYPE_CEDARV, "video/cedarx");
+		addFileType("3DM", FILE_TYPE_CEDARV, "video/cedarx");
+		addFileType("3DV", FILE_TYPE_CEDARV, "video/cedarx");
 
         if (isWMVEnabled()) {
             addFileType("WMV", FILE_TYPE_WMV, "video/x-ms-wmv", MtpConstants.FORMAT_WMV);
@@ -265,7 +263,6 @@ public class MediaFile {
         addFileType("M3U8", FILE_TYPE_HTTPLIVE, "application/vnd.apple.mpegurl");
         addFileType("M3U8", FILE_TYPE_HTTPLIVE, "audio/mpegurl");
         addFileType("M3U8", FILE_TYPE_HTTPLIVE, "audio/x-mpegurl");
-        addFileType("MPD", FILE_TYPE_DASH, "application/dash+xml");
 
         addFileType("FL", FILE_TYPE_FL, "application/x-android-drm-fl");
 
@@ -280,9 +277,6 @@ public class MediaFile {
         addFileType("ZIP", FILE_TYPE_ZIP, "application/zip");
         addFileType("MPG", FILE_TYPE_MP2PS, "video/mp2p");
         addFileType("MPEG", FILE_TYPE_MP2PS, "video/mp2p");
-        addFileType("DIVX", FILE_TYPE_DIVX, "video/divx");
-        addFileType("AC3", FILE_TYPE_AC3, "audio/ac3");
-        addFileType("EC3", FILE_TYPE_EC3, "audio/eac3");
     }
 
     public static boolean isAudioFileType(int fileType) {
@@ -290,8 +284,7 @@ public class MediaFile {
                 fileType <= LAST_AUDIO_FILE_TYPE) ||
                 (fileType >= FIRST_MIDI_FILE_TYPE &&
                 fileType <= LAST_MIDI_FILE_TYPE) ||
-                (fileType >= FIRST_AUDIO_FILE_TYPE2 &&
-                fileType <= LAST_AUDIO_FILE_TYPE2));
+                fileType == FILE_TYPE_CEDARA);
     }
 
     public static boolean isVideoFileType(int fileType) {
