@@ -533,7 +533,8 @@ public class WifiMonitor {
                     }
                 } else {
                     // events without prefix belong to p2p0 monitor
-                    m = mWifiMonitorSingleton.getMonitor("p2p0");
+                    //m = mWifiMonitorSingleton.getMonitor("p2p0");
+		    m = mWifiMonitorSingleton.getMonitor("wlan0");
                 }
 
                 if (m != null) {
@@ -551,7 +552,7 @@ public class WifiMonitor {
                         break;
                     }
                 } else {
-                    if (DBG) Log.d(TAG, "Sending to all monitors because there's no interface id");
+                    if (DBG) Log.d(TAG, "Sending to all monitors because there's no interface id" + iface);
                     boolean done = false;
                     Iterator<Map.Entry<String, WifiMonitor>> it =
                             mWifiMonitorSingleton.mIfaceMap.entrySet().iterator();

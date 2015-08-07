@@ -18,7 +18,10 @@
 
 #include "jni.h"
 #include <ScopedUtfChars.h>
+#include <utils/misc.h>
 #include <android_runtime/AndroidRuntime.h>
+#include <utils/Log.h>
+#include <utils/String16.h>
 
 #include "wifi.h"
 
@@ -102,11 +105,6 @@ static jstring doStringCommand(JNIEnv* env, jstring javaCommand) {
         str += String16((char *)reply);
     }
     return env->NewString((const jchar *)str.string(), str.size());
-}
-
-static jboolean android_net_wifi_setMode(JNIEnv* env, jobject, jint type)
-{
-    return (jboolean)(::wifi_set_mode(type) == 0);
 }
 
 static jboolean android_net_wifi_isDriverLoaded(JNIEnv* env, jobject)
@@ -223,7 +221,6 @@ static JNINativeMethod gWifiMethods[] = {
     { "doIntCommandNative", "(Ljava/lang/String;)I", (void*)android_net_wifi_doIntCommand },
     { "doStringCommandNative", "(Ljava/lang/String;)Ljava/lang/String;",
             (void*) android_net_wifi_doStringCommand },
-    { "setMode", "(I)Z", (void*) android_net_wifi_setMode},
 };
 
 int register_android_net_wifi_WifiNative(JNIEnv* env) {

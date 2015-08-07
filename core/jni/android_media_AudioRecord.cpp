@@ -208,27 +208,14 @@ android_media_AudioRecord_setup(JNIEnv *env, jobject thiz, jobject weak_this,
     uint32_t nbChannels = popcount(channelMask);
 
     // compare the format against the Java constants
-     if ((audioFormat != ENCODING_PCM_16BIT)
-#ifdef QCOM_HARDWARE
-         && (audioFormat != ENCODING_AMRNB)
-         && (audioFormat != ENCODING_AMRWB)
-         && (audioFormat != ENCODING_EVRC)
-         && (audioFormat != ENCODING_EVRCB)
-         && (audioFormat != ENCODING_EVRCWB)
-         && (audioFormat != ENCODING_EVRCNW)
-#endif
-         && (audioFormat != ENCODING_PCM_8BIT)) {
-         ALOGE("Error creating AudioRecord: unsupported audio format.");
-         return AUDIORECORD_ERROR_SETUP_INVALIDFORMAT;
+    if ((audioFormat != ENCODING_PCM_16BIT)
+        && (audioFormat != ENCODING_PCM_8BIT)) {
+        ALOGE("Error creating AudioRecord: unsupported audio format.");
+        return AUDIORECORD_ERROR_SETUP_INVALIDFORMAT;
     }
     int bytesPerSample;
     if(audioFormat == ENCODING_PCM_16BIT)
         bytesPerSample = 2;
-#ifdef QCOM_HARDWARE
-    else if((audioFormat == ENCODING_AMRWB) &&
-            ((uint32_t)source != AUDIO_SOURCE_VOICE_COMMUNICATION))
-        bytesPerSample = 61;
-#endif
     else
         bytesPerSample = 1;
     audio_format_t format = (audio_format_t)getformatrec(audioFormat);
@@ -575,10 +562,6 @@ static jint android_media_AudioRecord_get_min_buff_size(JNIEnv *env,  jobject th
     int bytesPerSample;
     if(audioFormat == ENCODING_PCM_16BIT)
         bytesPerSample = 2;
-#ifdef QCOM_HARDWARE
-    else if(audioFormat == ENCODING_AMRWB)
-        bytesPerSample = 61;
-#endif
     else
         bytesPerSample = 1;
 

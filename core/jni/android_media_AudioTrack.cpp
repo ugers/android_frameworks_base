@@ -219,22 +219,6 @@ int getformat(int audioformat)
     switch (audioformat) {
     case ENCODING_PCM_16BIT:
         return AUDIO_FORMAT_PCM_16_BIT;
-#ifdef QCOM_HARDWARE
-    case ENCODING_PCM_8BIT:
-        return AUDIO_FORMAT_PCM_8_BIT;
-    case ENCODING_AMRNB:
-        return AUDIO_FORMAT_AMR_NB;
-    case ENCODING_AMRWB:
-        return AUDIO_FORMAT_AMR_WB;
-    case ENCODING_EVRC:
-        return AUDIO_FORMAT_EVRC;
-    case ENCODING_EVRCB:
-        return AUDIO_FORMAT_EVRCB;
-    case ENCODING_EVRCWB:
-        return AUDIO_FORMAT_EVRCWB;
-    case ENCODING_EVRCNW:
-        return AUDIO_FORMAT_EVRCNW;
-#endif
     default:
         return AUDIO_FORMAT_PCM_8_BIT;
     }

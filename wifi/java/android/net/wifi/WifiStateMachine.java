@@ -1251,7 +1251,6 @@ public class WifiStateMachine extends StateMachine {
      */
     public void setSupplicantRunning(boolean enable) {
         if (enable) {
-            WifiNative.setMode(0);
             sendMessage(CMD_START_SUPPLICANT);
         } else {
             sendMessage(CMD_STOP_SUPPLICANT);
@@ -1263,7 +1262,6 @@ public class WifiStateMachine extends StateMachine {
      */
     public void setHostApRunning(WifiConfiguration wifiConfig, boolean enable) {
         if (enable) {
-            WifiNative.setMode(1);
             sendMessage(CMD_START_AP, wifiConfig);
         } else {
             sendMessage(CMD_STOP_AP);
@@ -2374,6 +2372,27 @@ public class WifiStateMachine extends StateMachine {
 
     void handlePreDhcpSetup() {
         mDhcpActive = true;
+        if (!mBluetoothConnectionActive) {
+            /*
+             * There are problems setting the Wi-Fi driver's power
+             * mode to active when bluetooth coexistence mode is
+             * enabled or sense.
+             * <p>
+             * We set Wi-Fi to active mode when
+             * obtaining an IP address because we've found
+             * compatibility issues with some routers with low power
+             * mode.
+             * <p>
+             * In order for this active power mode to properly be set,
+             * we disable coexistence mode until we're done with
+             * obtaining an IP address.  One exception is if we
+             * are currently connected to a headset, since disabling
+             * coexistence would interrupt that connection.
+             */
+            // Disable the coexistence mode
+            mWifiNative.setBluetoothCoexistenceMode(
+                    mWifiNative.BLUETOOTH_COEXISTENCE_MODE_DISABLED);
+        }
 
         /* Disable power save and suspend optimizations during DHCP */
         // Note: The order here is important for now. Brcm driver changes
@@ -2381,10 +2400,6 @@ public class WifiStateMachine extends StateMachine {
         // TODO: Remove this comment when the driver is fixed.
         setSuspendOptimizationsNative(SUSPEND_DUE_TO_DHCP, false);
         mWifiNative.setPowerSave(false);
-
-        // Disable the coexistence mode
-        mWifiNative.setBluetoothCoexistenceMode(
-                    mWifiNative.BLUETOOTH_COEXISTENCE_MODE_DISABLED);
 
         stopBatchedScan();
 
@@ -2417,15 +2432,15 @@ public class WifiStateMachine extends StateMachine {
     }
 
     void handlePostDhcpSetup() {
+        /* Restore power save and suspend optimizations */
+        setSuspendOptimizationsNative(SUSPEND_DUE_TO_DHCP, true);
+        mWifiNative.setPowerSave(true);
+
         mWifiP2pChannel.sendMessage(WifiP2pService.BLOCK_DISCOVERY, WifiP2pService.DISABLED);
 
         // Set the coexistence mode back to its default value
         mWifiNative.setBluetoothCoexistenceMode(
                 mWifiNative.BLUETOOTH_COEXISTENCE_MODE_SENSE);
-
-        /* Restore power save and suspend optimizations */
-        setSuspendOptimizationsNative(SUSPEND_DUE_TO_DHCP, true);
-        mWifiNative.setPowerSave(true);
 
         mDhcpActive = false;
 
@@ -2792,14 +2807,6 @@ public class WifiStateMachine extends StateMachine {
             detail = SystemProperties.get("ro.product.manufacturer", "");
             if (!mWifiNative.setManufacturer(detail)) {
                 loge("Failed to set manufacturer " + detail);
-            }
-            detail = SystemProperties.get("ro.product.model", "");
-            if (!mWifiNative.setModelName(detail)) {
-                loge("Failed to set model name " + detail);
-            }
-            detail = SystemProperties.get("ro.product.model", "");
-            if (!mWifiNative.setModelNumber(detail)) {
-                loge("Failed to set model number " + detail);
             }
             detail = SystemProperties.get("ro.serialno", "");
             if (!mWifiNative.setSerialNumber(detail)) {
@@ -4078,11 +4085,7 @@ public class WifiStateMachine extends StateMachine {
                  * cleared
                  */
                 if (!mScanResultIsPending) {
-                    if (!mWifiNative.enableBackgroundScan(true)) {
-                        setScanAlarm(true);
-                    } else {
-                        setScanAlarm(false);
-                    }
+                    mWifiNative.enableBackgroundScan(true);
                 }
             } else {
                 setScanAlarm(true);
@@ -4136,11 +4139,8 @@ public class WifiStateMachine extends StateMachine {
                 case CMD_ENABLE_BACKGROUND_SCAN:
                     mEnableBackgroundScan = (message.arg1 == 1);
                     if (mEnableBackgroundScan) {
-                        if (!mWifiNative.enableBackgroundScan(true)) {
-                            setScanAlarm(true);
-                        } else {
-                            setScanAlarm(false);
-                        }
+                        mWifiNative.enableBackgroundScan(true);
+                        setScanAlarm(false);
                     } else {
                         mWifiNative.enableBackgroundScan(false);
                         setScanAlarm(true);
@@ -4166,11 +4166,7 @@ public class WifiStateMachine extends StateMachine {
                 case WifiMonitor.SCAN_RESULTS_EVENT:
                     /* Re-enable background scan when a pending scan result is received */
                     if (mEnableBackgroundScan && mScanResultIsPending) {
-                        if (!mWifiNative.enableBackgroundScan(true)) {
-                            setScanAlarm(true);
-                        } else {
-                            setScanAlarm(false);
-                        }
+                        mWifiNative.enableBackgroundScan(true);
                     }
                     /* Handled in parent state */
                     ret = NOT_HANDLED;
@@ -4189,13 +4185,6 @@ public class WifiStateMachine extends StateMachine {
                         if (DBG) log("Turn on scanning after p2p disconnected");
                         sendMessageDelayed(obtainMessage(CMD_NO_NETWORKS_PERIODIC_SCAN,
                                     ++mPeriodicScanToken, 0), mSupplicantScanIntervalMs);
-                    } else if (mEnableBackgroundScan && !mP2pConnected.get() &&
-                               (mWifiConfigStore.getConfiguredNetworks().size() != 0)) {
-                        if (!mWifiNative.enableBackgroundScan(true)) {
-                            setScanAlarm(true);
-                        } else {
-                            setScanAlarm(false);
-                        }
                     }
                 case CMD_RECONNECT:
                 case CMD_REASSOCIATE:

@@ -84,7 +84,6 @@ public class UsbDebuggingManager implements Runnable {
                     Slog.e(TAG, "got " + count + " reading");
                     break;
                 }
-
                 if (buffer[0] == 'P' && buffer[1] == 'K') {
                     String key = new String(Arrays.copyOfRange(buffer, 2, count));
                     Slog.d(TAG, "Received public key: " + key);
