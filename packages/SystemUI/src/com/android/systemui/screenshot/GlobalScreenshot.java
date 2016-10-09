@@ -56,6 +56,8 @@ import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.view.animation.Interpolator;
 import android.widget.ImageView;
+import android.util.Slog;
+import android.os.SystemProperties;
 
 import com.android.systemui.R;
 
@@ -541,6 +543,11 @@ class GlobalScreenshot {
         float[] dims = {mDisplayMetrics.widthPixels, mDisplayMetrics.heightPixels};
         float degrees = getDegreesForRotation(mDisplay.getRotation());
         boolean requiresRotation = (degrees > 0);
+        int rot = SystemProperties.getInt("ro.sf.rotation", 0);
+        if(rot > 0)
+        {
+            requiresRotation = true;
+        }
         if (requiresRotation) {
             // Get the dimensions of the device in its native orientation
             mDisplayMatrix.reset();

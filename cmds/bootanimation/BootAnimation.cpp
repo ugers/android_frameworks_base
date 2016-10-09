@@ -68,8 +68,9 @@ static const int ANIM_ENTRY_NAME_MAX = 256;
 
 // ---------------------------------------------------------------------------
 
-BootAnimation::BootAnimation() : Thread(false), mZip(NULL)
+BootAnimation::BootAnimation(char *animation) : Thread(false), mZip(NULL)
 {
+    mCustomAnimationFile = animation;
     mSession = new SurfaceComposerClient();
 }
 
@@ -240,7 +241,7 @@ status_t BootAnimation::readyToRun() {
 
     // create the native surface
     sp<SurfaceControl> control = session()->createSurface(String8("BootAnimation"),
-            dinfo.w, dinfo.h, PIXEL_FORMAT_RGB_565);
+            dinfo.orientation % 2 == 0 ? dinfo.w : dinfo.h, dinfo.orientation % 2 == 0 ? dinfo.h : dinfo.w, PIXEL_FORMAT_RGB_565);
 
     SurfaceComposerClient::openGlobalTransaction();
     control->setLayer(0x40000000);
@@ -290,7 +291,11 @@ status_t BootAnimation::readyToRun() {
     bool encryptedAnimation = atoi(decrypt) != 0 || !strcmp("trigger_restart_min_framework", decrypt);
 
     ZipFileRO* zipFile = NULL;
-    if ((encryptedAnimation &&
+    if ((mCustomAnimationFile != NULL &&
+            (access(mCustomAnimationFile, R_OK) == 0) &&
+            ((zipFile = ZipFileRO::open(mCustomAnimationFile)) != NULL)) ||
+
+            (encryptedAnimation &&
             (access(SYSTEM_ENCRYPTED_BOOTANIMATION_FILE, R_OK) == 0) &&
             ((zipFile = ZipFileRO::open(SYSTEM_ENCRYPTED_BOOTANIMATION_FILE)) != NULL)) ||
 
@@ -461,7 +466,12 @@ bool BootAnimation::movie()
 
     // Create and initialize an AudioPlayer if we have an audio_conf.txt file
     String8 audioConf;
-    if (readFile("audio_conf.txt", audioConf)) {
+    char value[PROPERTY_VALUE_MAX];
+    property_get("persist.sys.nobootmusic", value, "0");
+    int noBootMusic = atoi(value) || (access("/cache/nobootmusic", R_OK) == 0);
+    ALOGD("nobootmusic: %d\n", noBootMusic);
+
+    if (!noBootMusic && readFile("audio_conf.txt", audioConf)) {
         mAudioPlayer = new AudioPlayer;
         if (!mAudioPlayer->init(audioConf.string())) {
             ALOGE("mAudioPlayer.init failed");

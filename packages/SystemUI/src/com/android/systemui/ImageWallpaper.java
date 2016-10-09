@@ -70,6 +70,8 @@ public class ImageWallpaper extends WallpaperService {
 
     boolean mIsHwAccelerated;
 
+	boolean fixSizeSurface = true;
+	
     @Override
     public void onCreate() {
         super.onCreate();
@@ -81,6 +83,8 @@ public class ImageWallpaper extends WallpaperService {
                 mIsHwAccelerated = ActivityManager.isHighEndGfx();
             }
         }
+		
+		fixSizeSurface = this.getResources().getBoolean(R.bool.config_fixed_size_surface);
     }
 
     @Override
@@ -213,7 +217,7 @@ public class ImageWallpaper extends WallpaperService {
             int surfaceWidth = Math.max(displayInfo.logicalWidth, mBackgroundWidth);
             int surfaceHeight = Math.max(displayInfo.logicalHeight, mBackgroundHeight);
 
-            if (FIXED_SIZED_SURFACE) {
+            if (FIXED_SIZED_SURFACE && fixSizeSurface) {
                 // Used a fixed size surface, because we are special.  We can do
                 // this because we know the current design of window animations doesn't
                 // cause this to break.

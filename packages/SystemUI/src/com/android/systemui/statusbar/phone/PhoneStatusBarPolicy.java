@@ -64,6 +64,7 @@ public class PhoneStatusBarPolicy implements Callback {
     private static final String SLOT_VOLUME = "volume";
     private static final String SLOT_ALARM_CLOCK = "alarm_clock";
     private static final String SLOT_MANAGED_PROFILE = "managed_profile";
+    private static final String SLOT_HEADSET = "headset";
 
     private final Context mContext;
     private final StatusBarManager mService;
@@ -89,6 +90,8 @@ public class PhoneStatusBarPolicy implements Callback {
     private boolean mKeyguardVisible = true;
     private BluetoothController mBluetooth;
 
+    private int mHeadsetState = 0;
+
     private BroadcastReceiver mIntentReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
@@ -105,6 +108,9 @@ public class PhoneStatusBarPolicy implements Callback {
             }
             else if (action.equals(TelecomManager.ACTION_CURRENT_TTY_MODE_CHANGED)) {
                 updateTTY(intent);
+            }
+            else if (action.equals(Intent.ACTION_HEADSET_PLUG)) {
+                updateHeadset(intent);
             }
         }
     };
@@ -135,6 +141,7 @@ public class PhoneStatusBarPolicy implements Callback {
         filter.addAction(AudioManager.INTERNAL_RINGER_MODE_CHANGED_ACTION);
         filter.addAction(TelephonyIntents.ACTION_SIM_STATE_CHANGED);
         filter.addAction(TelecomManager.ACTION_CURRENT_TTY_MODE_CHANGED);
+        filter.addAction(Intent.ACTION_HEADSET_PLUG);
         mContext.registerReceiver(mIntentReceiver, filter, null, mHandler);
 
         // listen for user / profile change.
@@ -179,6 +186,10 @@ public class PhoneStatusBarPolicy implements Callback {
         mService.setIcon(SLOT_MANAGED_PROFILE, R.drawable.stat_sys_managed_profile_status, 0,
                 mContext.getString(R.string.accessibility_managed_profile));
         mService.setIconVisibility(SLOT_MANAGED_PROFILE, false);
+
+        // headset
+        mService.setIcon(SLOT_HEADSET, R.drawable.headset, 0, null);
+        mService.setIconVisibility(SLOT_HEADSET, false);
     }
 
     public void setZenMode(int zen) {
@@ -383,12 +394,6 @@ public class PhoneStatusBarPolicy implements Callback {
                 @Override
                 public void onUserSwitching(int newUserId, IRemoteCallback reply) {
                     mUserInfoController.reloadUserInfo();
-                    if (reply != null) {
-                        try {
-                            reply.sendResult(null);
-                        } catch (RemoteException e) {
-                        }
-                    }
                 }
 
                 @Override
@@ -430,5 +435,17 @@ public class PhoneStatusBarPolicy implements Callback {
         if (mCurrentUserSetup == userSetup) return;
         mCurrentUserSetup = userSetup;
         updateAlarm();
+    }
+
+    private final void updateHeadset(Intent intent) {
+        int device = intent.getIntExtra("device" , 0);
+        int state = intent.getIntExtra("state" , 0);
+        Log.d(TAG, "updateHeadset: device=" + device + ", state=" + state);
+        if (state == 0) {
+            mHeadsetState &= ~device;
+        } else {
+            mHeadsetState |= device;
+        }
+        mService.setIconVisibility(SLOT_HEADSET, (mHeadsetState!=0) ? true : false );
     }
 }

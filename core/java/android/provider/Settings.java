@@ -2362,6 +2362,20 @@ public final class Settings {
         };
 
         /**
+         * enable the screen adaption.
+         * add by allwinner
+         * @hide
+         */
+        public static final String DISPLAY_ADAPTION_ENABLE = "display_adapter_enable";
+
+        /**
+         * the display mode options.
+         * add by allwinner
+         * @hide
+         */
+        public static final String DISPLAY_ADAPTION_MODE = "display_adaption_mode";
+
+        /**
          * Name of an application package to be debugged.
          *
          * @deprecated Use {@link Global#DEBUG_APP} instead
@@ -3200,6 +3214,12 @@ public final class Settings {
          */
         public static final String EGG_MODE = "egg_mode";
 
+        /* add by allwinner */
+        /** @hide */
+        public static final String GESTURE_SCREENSHOT_ENABLE = "gesture_screenshot_enable";
+        /** @hide */
+        public static final String GESTURE_SCREENRECORD_ENABLE = "gesture_screenrecord_enable";
+
         /** @hide */
         public static final Validator EGG_MODE_VALIDATOR = new Validator() {
             @Override
@@ -3211,6 +3231,30 @@ public final class Settings {
                 }
             }
         };
+
+        /* add by allwinner */
+        /** @hide */
+        public static final String BRIGHT_SYSTEM_MODE = "bright_system_mode";
+        /** @hide */
+        public static final String BRIGHTNESS_LIGHT_MODE = "brightness_light_mode";
+        /** @hide */
+        public static final String HDMI_OUTPUT_MODE = "hdmi_output_mode";
+        /** @hide */
+        public static final String HDMI_FULL_SCREEN = "hdmi_full_screen";
+        /** @hide */
+        public static final String HDMI_PERSENT = "hdmi_persent";
+
+        /**
+         * kill background services
+         * @hide
+         */
+        public static final String KILL_BACKGROUND_SERVICES = "kill_background_services";
+
+        /**
+         * kill background services list
+         * @hide
+         */
+        public static final String KILL_BACKGROUND_SERVICES_LIST = "kill_background_services_list";
 
         /**
          * IMPORTANT: If you add a new public settings you also have to add it to
@@ -3270,7 +3314,11 @@ public final class Settings {
             VIBRATE_WHEN_RINGING,
             RINGTONE,
             LOCK_TO_APP_ENABLED,
-            NOTIFICATION_SOUND
+            NOTIFICATION_SOUND,
+            BRIGHT_SYSTEM_MODE,
+            BRIGHTNESS_LIGHT_MODE,
+            HDMI_OUTPUT_MODE,
+            HDMI_FULL_SCREEN
         };
 
         /**
@@ -4905,6 +4953,13 @@ public final class Settings {
          * @hide
          */
         public static final String LONG_PRESS_TIMEOUT = "long_press_timeout";
+
+         /**
+         * Configuration of start system print service by default.
+         * @hide
+         */
+        public static final String DEFAULT_ENABLE_SYSTEM_PRINT_SERVICES =
+            "default_enable_system_print_services";
 
         /**
          * List of the enabled print services.

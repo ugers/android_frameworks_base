@@ -207,7 +207,7 @@ public class QsTuner extends Fragment implements Callback {
 
         public CustomHost(Context context) {
             super(context, null, null, null, null, null, null, null, null, null,
-                    null, null, new BlankSecurityController());
+                    null, null, new BlankSecurityController(), null);
         }
 
         @Override

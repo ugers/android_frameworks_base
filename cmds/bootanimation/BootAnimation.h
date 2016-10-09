@@ -40,7 +40,7 @@ class SurfaceControl;
 class BootAnimation : public Thread, public IBinder::DeathRecipient
 {
 public:
-                BootAnimation();
+                BootAnimation(char * = NULL);
     virtual     ~BootAnimation();
 
     sp<SurfaceComposerClient> session() const;
@@ -101,6 +101,7 @@ private:
     sp<SurfaceControl> mFlingerSurfaceControl;
     sp<Surface> mFlingerSurface;
     ZipFileRO   *mZip;
+    char        *mCustomAnimationFile;
 };
 
 // ---------------------------------------------------------------------------

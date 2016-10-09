@@ -24,6 +24,7 @@ import com.android.internal.os.BackgroundThread;
 import com.android.server.EventLogTags;
 import com.android.server.ServiceThread;
 import com.android.server.SystemService;
+import com.android.server.am.ActivityManagerService;
 import com.android.server.am.BatteryStatsService;
 import com.android.server.lights.Light;
 import com.android.server.lights.LightsManager;
@@ -56,6 +57,7 @@ import android.os.PowerManager;
 import android.os.PowerManagerInternal;
 import android.os.Process;
 import android.os.RemoteException;
+import android.os.ServiceManager;
 import android.os.SystemClock;
 import android.os.SystemProperties;
 import android.os.Trace;
@@ -1126,6 +1128,8 @@ public final class PowerManagerService extends SystemService
 
         Trace.traceBegin(Trace.TRACE_TAG_POWER, "goToSleep");
         try {
+            ActivityManagerService ams = (ActivityManagerService) ServiceManager.getService("activity");
+            ams.killBackgroundTaskImmediately();
             switch (reason) {
                 case PowerManager.GO_TO_SLEEP_REASON_DEVICE_ADMIN:
                     Slog.i(TAG, "Going to sleep due to device administration policy "

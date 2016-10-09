@@ -51,6 +51,7 @@ import com.android.internal.telephony.ITelephony;
 import com.android.server.pm.PackageManagerService;
 
 import android.util.Log;
+import android.view.IWindowManager;
 import android.view.WindowManager;
 
 import java.io.BufferedReader;
@@ -111,6 +112,8 @@ public final class ShutdownThread extends Thread {
     private PowerManager.WakeLock mCpuWakeLock;
     private PowerManager.WakeLock mScreenWakeLock;
     private Handler mHandler;
+    private long mShutdownAnimationDuration;
+    private boolean mRotationFrozen;
 
     private static AlertDialog sConfirmDialog;
     private ProgressDialog mProgressDialog;
@@ -157,7 +160,19 @@ public final class ShutdownThread extends Thread {
             if (sConfirmDialog != null) {
                 sConfirmDialog.dismiss();
             }
-            sConfirmDialog = new AlertDialog.Builder(context)
+            if (mReboot == true && mRebootSafeMode == false) {
+                sConfirmDialog = new AlertDialog.Builder(context)
+                    .setTitle(com.android.internal.R.string.reboot_title)
+                    .setMessage(com.android.internal.R.string.reboot_confirm)
+                    .setPositiveButton(com.android.internal.R.string.yes, new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int which) {
+                            beginShutdownSequence(context);
+                        }
+                    })
+                    .setNegativeButton(com.android.internal.R.string.no, null)
+                    .create();
+            } else {
+                sConfirmDialog = new AlertDialog.Builder(context)
                     .setTitle(mRebootSafeMode
                             ? com.android.internal.R.string.reboot_safemode_title
                             : com.android.internal.R.string.power_off)
@@ -169,6 +184,7 @@ public final class ShutdownThread extends Thread {
                     })
                     .setNegativeButton(com.android.internal.R.string.no, null)
                     .create();
+            }
             closer.dialog = sConfirmDialog;
             sConfirmDialog.setOnDismissListener(closer);
             sConfirmDialog.getWindow().setType(WindowManager.LayoutParams.TYPE_KEYGUARD_DIALOG);
@@ -245,6 +261,27 @@ public final class ShutdownThread extends Thread {
             sIsStarted = true;
         }
 
+        final long duration = context.getResources().getInteger(
+                        com.android.internal.R.integer.config_shutdownAnimationDuration);
+        sInstance.mShutdownAnimationDuration = duration;
+        if (duration > 0) {
+            SystemProperties.set("service.bootanim.exit", "0");
+            SystemProperties.set("ctl.start", "shutdownanim");
+
+            IWindowManager wm = IWindowManager.Stub.asInterface(ServiceManager.getService("window"));
+            if (wm != null) {
+                try{
+                    final boolean frozen = wm.isRotationFrozen();
+                    if (!frozen) {
+                        int rotation = wm.getRotation();
+                        wm.freezeRotation(rotation);
+                    }
+                    sInstance.mRotationFrozen = frozen;
+                } catch (RemoteException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
         // Throw up a system dialog to indicate the device is rebooting / shutting down.
         ProgressDialog pd = new ProgressDialog(context);
 
@@ -262,6 +299,7 @@ public final class ShutdownThread extends Thread {
         //   UI: spinning circle only (no progress bar)
         if (PowerManager.REBOOT_RECOVERY.equals(mRebootReason)) {
             mRebootUpdate = new File(UNCRYPT_PACKAGE_FILE).exists();
+			boolean bFactoryReset = new File("/cache/recovery/command").exists();
             if (mRebootUpdate) {
                 pd.setTitle(context.getText(com.android.internal.R.string.reboot_to_update_title));
                 pd.setMessage(context.getText(
@@ -273,9 +311,15 @@ public final class ShutdownThread extends Thread {
                 pd.setIndeterminate(false);
             } else {
                 // Factory reset path. Set the dialog message accordingly.
-                pd.setTitle(context.getText(com.android.internal.R.string.reboot_to_reset_title));
-                pd.setMessage(context.getText(
-                        com.android.internal.R.string.reboot_to_reset_message));
+                if (bFactoryReset) {
+                    pd.setTitle(context.getText(com.android.internal.R.string.reboot_to_reset_title));
+                    pd.setMessage(context.getText(
+                            com.android.internal.R.string.reboot_to_reset_message));
+                } else {
+                    pd.setTitle(context.getText(com.android.internal.R.string.reboot_to_recovery_title));
+                    pd.setMessage(context.getText(
+                            com.android.internal.R.string.reboot_to_recovery_message));
+				}
                 pd.setIndeterminate(true);
             }
         } else {
@@ -336,6 +380,7 @@ public final class ShutdownThread extends Thread {
      * Shuts off power regardless of radio and bluetooth state if the alloted time has passed.
      */
     public void run() {
+        final long startTime = SystemClock.elapsedRealtime();
         BroadcastReceiver br = new BroadcastReceiver() {
             @Override public void onReceive(Context context, Intent intent) {
                 // We don't allow apps to cancel this, so ignore the result.
@@ -471,6 +516,22 @@ public final class ShutdownThread extends Thread {
 
             // If it's to reboot to install update, invoke uncrypt via init service.
             uncrypt();
+        }
+        if (mShutdownAnimationDuration > 0) {
+            final long duration = startTime - SystemClock.elapsedRealtime();
+            if (mShutdownAnimationDuration > duration) {
+                SystemClock.sleep(mShutdownAnimationDuration - duration);
+            }
+            if (!mRotationFrozen) {
+                IWindowManager wm = IWindowManager.Stub.asInterface(ServiceManager.getService("window"));
+                if (wm != null) {
+                    try{
+                        wm.thawRotation();
+                    } catch (RemoteException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
         }
 
         rebootOrShutdown(mContext, mReboot, mRebootReason);

@@ -175,6 +175,22 @@ static void maybeCreateDalvikCache() {
             "Error changing dalvik-cache permissions : %s", strerror(errno));
 }
 
+static int wait_for_data(int timeout)
+{
+    int i = 0;
+    int ret = -1;
+    char prop[PROP_VALUE_MAX];
+    const char *ZYGOTE_WAIT_PROPERTY = "zygote.mount_fs_data_done";
+
+    timeout *= 100;
+    while (i++ < timeout
+        && (ret = property_get(ZYGOTE_WAIT_PROPERTY, prop, NULL)) == 0) {
+        usleep(10 * 1000);
+    }
+
+    return ret;
+}
+
 #if defined(__LP64__)
 static const char ABI_LIST_PROPERTY[] = "ro.product.cpu.abilist64";
 static const char ZYGOTE_NICE_NAME[] = "zygote64";
@@ -273,6 +289,7 @@ int main(int argc, char* const argv[])
         args.add(application ? String8("application") : String8("tool"));
         runtime.setClassNameAndArgs(className, argc - i, argv + i);
     } else {
+        wait_for_data(60);
         // We're in zygote mode.
         maybeCreateDalvikCache();
 

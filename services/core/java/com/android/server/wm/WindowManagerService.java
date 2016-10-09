@@ -634,8 +634,8 @@ public class WindowManagerService extends IWindowManager.Stub
     PowerManager mPowerManager;
     PowerManagerInternal mPowerManagerInternal;
 
-    float mWindowAnimationScaleSetting = 1.0f;
-    float mTransitionAnimationScaleSetting = 1.0f;
+    float mWindowAnimationScaleSetting = 0.5f;
+    float mTransitionAnimationScaleSetting = 0.5f;
     float mAnimatorDurationScaleSetting = 1.0f;
     boolean mAnimationsDisabled = false;
 
@@ -5216,6 +5216,26 @@ public class WindowManagerService extends IWindowManager.Stub
         }
     }
 
+    @Override
+    public void cancelTaskWindowTransition(int taskId) {
+        synchronized (mWindowMap) {
+            Task task = mTaskIdToTask.get(taskId);
+            if (task != null) {
+                task.cancelTaskWindowTransition();
+            }
+        }
+    }
+
+    @Override
+    public void cancelTaskThumbnailTransition(int taskId) {
+        synchronized (mWindowMap) {
+            Task task = mTaskIdToTask.get(taskId);
+            if (task != null) {
+                task.cancelTaskThumbnailTransition();
+            }
+        }
+    }
+
     public void addTask(int taskId, int stackId, boolean toTop) {
         synchronized (mWindowMap) {
             if (DEBUG_STACK) Slog.i(TAG, "addTask: adding taskId=" + taskId
@@ -5636,6 +5656,11 @@ public class WindowManagerService extends IWindowManager.Stub
             // Switch state: AKEY_STATE_UNKNOWN.
             return LID_ABSENT;
         }
+    }
+
+    @Override
+    public void reboot(String reason, boolean confirm) {
+        ShutdownThread.reboot(mContext, reason, confirm);
     }
 
     // Called by window manager policy. Not exposed externally.

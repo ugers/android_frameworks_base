@@ -97,6 +97,11 @@ public class StorageNotification extends SystemUI {
         public void onDiskScanned(DiskInfo disk, int volumeCount) {
             onDiskScannedInternal(disk, volumeCount);
         }
+
+        @Override
+        public void onDiskDestroyed(DiskInfo disk) {
+             mNotificationManager.cancelAsUser(disk.getId(), DISK_ID, UserHandle.ALL);
+        }
     };
 
     private final BroadcastReceiver mSnoozeReceiver = new BroadcastReceiver() {

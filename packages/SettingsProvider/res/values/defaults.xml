@@ -212,4 +212,15 @@
 
     <!-- Default for Settings.Secure.NFC_PAYMENT_COMPONENT -->
     <string name="def_nfc_payment_component"></string>
+
+    <!-- add by allwinner:hdmi -->
+    <integer name="def_bright_system">0</integer>
+    <integer name="def_brightness_light">1</integer>
+    <bool name="def_display_adation_enable">true</bool>
+    <integer name="def_hdmi_output_mode">10</integer>
+    <integer name="def_hdmi_full_screen">0</integer>
+    <integer name="def_hdmi_persent">25700</integer>
+
+    <!-- CAPTIVE_PORTAL_SERVER -->
+    <string name="def_captive_portal_server">connectivitycheck.gstatic.com</string>
 </resources>

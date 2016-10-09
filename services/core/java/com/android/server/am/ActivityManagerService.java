@@ -50,6 +50,7 @@ import android.app.assist.AssistStructure;
 import android.app.usage.UsageEvents;
 import android.app.usage.UsageStatsManagerInternal;
 import android.appwidget.AppWidgetManager;
+import android.content.ContentResolver;
 import android.content.pm.PermissionInfo;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -178,6 +179,7 @@ import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
 import android.content.res.CompatibilityInfo;
 import android.content.res.Configuration;
+import android.database.ContentObserver;
 import android.net.Proxy;
 import android.net.ProxyInfo;
 import android.net.Uri;
@@ -213,6 +215,7 @@ import android.os.UpdateLock;
 import android.os.UserHandle;
 import android.os.UserManager;
 import android.provider.Settings;
+import android.telecom.TelecomManager;
 import android.text.format.DateUtils;
 import android.text.format.Time;
 import android.util.AtomicFile;
@@ -266,7 +269,7 @@ public final class ActivityManagerService extends ActivityManagerNative
     // File that stores last updated system version and called preboot receivers
     static final String CALLED_PRE_BOOTS_FILENAME = "called_pre_boots.dat";
 
-    private static final String TAG = TAG_WITH_CLASS_NAME ? "ActivityManagerService" : TAG_AM;
+    static final String TAG = TAG_WITH_CLASS_NAME ? "ActivityManagerService" : TAG_AM;
     private static final String TAG_BACKUP = TAG + POSTFIX_BACKUP;
     private static final String TAG_BROADCAST = TAG + POSTFIX_BROADCAST;
     private static final String TAG_CLEANUP = TAG + POSTFIX_CLEANUP;
@@ -1382,6 +1385,19 @@ public final class ActivityManagerService extends ActivityManagerNative
     static final int FIRST_COMPAT_MODE_MSG = 300;
     static final int FIRST_SUPERVISOR_STACK_MSG = 100;
 
+    //add by allwinner for kill_background
+    static final int NOTIFY_CHECK_BACKGROUND_TASK_MSG = 9527;
+    static final int NOTIFY_EXECUTE_KILL_BACKGROUND_TASK_MSG = 9528;
+
+    boolean mKillBackgroundServices = false;
+    ArrayList<String> mBackgroundServicesWhitelist = null;
+    ArrayList<String> mBackgroundServicesBlacklist = null;
+    static final long BACKGROUND_TASK_IDLE_TIME = 1 * 60 * 1000; // 1min
+    Map<String, Long> mRecentPackasges = new HashMap<String, Long>(20);
+
+    /** for observer the settings of Settings.System.KILL_BACKGROUND_SERVICES_LIST */
+    private SettingsObserver mSettingsObserver;
+
     CompatModeDialog mCompatModeDialog;
     long mLastMemUsageReportTime = 0;
 
@@ -2070,6 +2086,23 @@ public final class ActivityManagerService extends ActivityManagerNative
                         }
                     }
                 }
+            } break;
+            case NOTIFY_CHECK_BACKGROUND_TASK_MSG: {
+                if (!mKillBackgroundServices) return;
+                long now = System.currentTimeMillis();
+                MemInfoReader mMemInfoReader = new MemInfoReader();
+                mMemInfoReader.readMemInfo();
+                final long freeMem = mMemInfoReader.getFreeSize() + mMemInfoReader.getCachedSize();
+                final long threshold = mProcessList.getMemLevel(ProcessList.HOME_APP_ADJ);
+                Slog.d(TAG, "readMemInfo: freeMem=" + freeMem + ",threshold=" + threshold);
+                notifyKillBackgroundServicesListIfNecessary(freeMem, threshold);
+                long idleTimeLimit = getIdleTimeLimit(freeMem, threshold);
+                executeKillBackgroundTask(idleTimeLimit);
+                Slog.d(TAG, "NOTIFY_CHECK_BACKGROUND_TASK_MSG spends " + (System.currentTimeMillis() - now) + "ms");
+                checkBackgroundTaskDelay(BACKGROUND_TASK_IDLE_TIME);
+            } break;
+            case NOTIFY_EXECUTE_KILL_BACKGROUND_TASK_MSG: {
+                executeKillBackgroundTask(-1);
             } break;
             }
         }
@@ -3444,6 +3477,139 @@ public final class ActivityManagerService extends ActivityManagerNative
         }
     }
 
+    private void notifyKillBackgroundServicesList() {
+        INotificationManager inm = NotificationManager.getService();
+        if (inm == null) {
+            return;
+        }
+        final Intent intent = new Intent("android.settings.BACKGROUND_CLEANUP_LIST_SETTINGS");
+        final PendingIntent pendingIntent = PendingIntent.getActivityAsUser(mContext, 0,
+                intent, PendingIntent.FLAG_ONE_SHOT, null, UserHandle.CURRENT);
+        Resources r = mContext.getResources();
+        Notification notification = new Notification.Builder(mContext)
+                .setSmallIcon(R.drawable.stat_background_cleanup)
+                .setContentTitle(r.getString(R.string.background_cleanup_notification_title))
+                .setContentText(r.getString(R.string.background_cleanup_notification_message))
+                .setColor(mContext.getColor(com.android.internal.R.color.system_notification_accent_color))
+                .setContentIntent(pendingIntent)
+                .setPriority(Notification.PRIORITY_DEFAULT)
+                .build();
+        notification.flags |= Notification.FLAG_AUTO_CANCEL;
+        try {
+            int[] outId = new int[1];
+            inm.enqueueNotificationWithTag("android", "android", null,
+                    R.string.background_cleanup_notification_title,
+                    notification, outId, UserHandle.USER_ALL);
+        } catch (RuntimeException e) {
+            Slog.w(ActivityManagerService.TAG,
+                    "Error showing notification for dump heap", e);
+        } catch (RemoteException e) {
+        }
+    }
+
+    private void notifyKillBackgroundServicesListIfNecessary(final long freeMem, final long threshold) {
+        if (!mKillBackgroundServices) return;
+        if (freeMem < threshold / 2) {
+            boolean notify = false;
+            synchronized (mRecentPackasges) {
+                Iterator<Map.Entry<String, Long>> it = mRecentPackasges.entrySet().iterator();
+                while (it.hasNext()) {
+                    Map.Entry<String, Long> entry = it.next();
+                    String packageName = entry.getKey();
+                    if (allowBackgroundTask(packageName)) {
+                        notify = true;
+                        break;
+                    }
+                }
+            }
+            if (notify)
+                notifyKillBackgroundServicesList();
+        }
+    }
+
+    private long getIdleTimeLimit(final long freeMem, final long threshold) {
+        if (freeMem > threshold * 9 / 8) {
+            return 0;
+        } else if (freeMem < threshold / 2) {
+            return 1;
+        }
+        long timevalue = ((freeMem * 8 + threshold / 2) / threshold) - 3;
+        timevalue = timevalue * BACKGROUND_TASK_IDLE_TIME;
+        Slog.d(TAG, "getIdleTimeLimit: " + timevalue);
+        return timevalue;
+    }
+
+    public boolean isWhitelistBackgroundTask(String packageName) {
+        if (!mKillBackgroundServices) return false;
+        if (mBackgroundServicesWhitelist == null) return false;
+        synchronized (mBackgroundServicesWhitelist) {
+            for (String pkg : mBackgroundServicesWhitelist) {
+                if (packageName.contains(pkg))
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean allowBackgroundTask(String packageName) {
+        if (!mKillBackgroundServices) return true;
+        if (mBackgroundServicesBlacklist == null) return true;
+        synchronized (mBackgroundServicesBlacklist) {
+            return !mBackgroundServicesBlacklist.contains(packageName);
+        }
+    }
+
+    /**
+     * execute kill background task
+     * idleTimeLimit=-1 to kill all immediately
+     */
+    private void executeKillBackgroundTask(long idleTimeLimit) {
+        if (!mKillBackgroundServices) return;
+        if (idleTimeLimit == 0) return;
+        long now = System.currentTimeMillis();
+        synchronized (mRecentPackasges) {
+            Iterator<Map.Entry<String, Long>> it = mRecentPackasges.entrySet().iterator();
+            while (it.hasNext()) {
+                Map.Entry<String, Long> entry = it.next();
+                long time = entry.getValue();
+                if (time < 0) {
+                    continue;
+                } else { // running background services
+                    String packageName = entry.getKey();
+                    if (allowBackgroundTask(packageName)) {
+                        entry.setValue(now);
+                    } else if (now - time > idleTimeLimit) {
+                        Slog.i(TAG, "forceStopPackage: " + packageName + " idle " + (now - time) + "ms");
+                        int userId = mTargetUserId != UserHandle.USER_NULL ? mTargetUserId : mCurrentUserId;
+                        forceStopPackage(packageName, userId);
+                        it.remove();
+                    }
+                }
+            }
+        }
+    }
+
+    public void killBackgroundTaskImmediately() {
+        mHandler.removeMessages(NOTIFY_EXECUTE_KILL_BACKGROUND_TASK_MSG);
+        Message msg = mHandler.obtainMessage(NOTIFY_EXECUTE_KILL_BACKGROUND_TASK_MSG);
+        mHandler.sendMessage(msg);
+    }
+
+    private void checkBackgroundTaskDelay(long delayMillis) {
+        mHandler.removeMessages(NOTIFY_CHECK_BACKGROUND_TASK_MSG);
+        Message msg = mHandler.obtainMessage(NOTIFY_CHECK_BACKGROUND_TASK_MSG);
+        mHandler.sendMessageDelayed(msg, delayMillis);
+    }
+
+    private void checkPackage(String packageName, long timestamp) {
+        if (!mKillBackgroundServices) return;
+        if (isWhitelistBackgroundTask(packageName)) return;
+        synchronized(mRecentPackasges) {
+            mRecentPackasges.put(packageName, timestamp);
+            checkBackgroundTaskDelay(5000L);
+        }
+    }
+
     void updateUsageStats(ActivityRecord component, boolean resumed) {
         if (DEBUG_SWITCH) Slog.d(TAG_SWITCH,
                 "updateUsageStats: comp=" + component + "res=" + resumed);
@@ -3465,6 +3631,7 @@ public final class ActivityManagerService extends ActivityManagerNative
                 stats.noteActivityPausedLocked(component.app.uid);
             }
         }
+        checkPackage(component.packageName, resumed ? -1L : System.currentTimeMillis());
     }
 
     Intent getHomeIntent() {
@@ -6451,12 +6618,17 @@ public final class ActivityManagerService extends ActivityManagerNative
         }
     }
 
+    static boolean SCHEDULE_BROADCAST = false;
     @Override
     public void bootAnimationComplete() {
         final boolean callFinishBooting;
         synchronized (this) {
             callFinishBooting = mCallFinishBooting;
             mBootAnimationComplete = true;
+            SCHEDULE_BROADCAST = true;
+            for (BroadcastQueue queue : mBroadcastQueues) {
+                queue.scheduleBroadcastsLocked();
+            }
         }
         if (callFinishBooting) {
             finishBooting();
@@ -9179,6 +9351,10 @@ public final class ActivityManagerService extends ActivityManagerNative
                 mStackSupervisor.setLockTaskModeLocked(null, ActivityManager.LOCK_TASK_MODE_NONE,
                         "stopLockTask", true);
             }
+            TelecomManager tm = (TelecomManager) mContext.getSystemService(Context.TELECOM_SERVICE);
+            if (tm != null) {
+                tm.showInCallScreen(false);
+            }
         } finally {
             Binder.restoreCallingIdentity(ident);
         }
@@ -11499,6 +11675,12 @@ public final class ActivityManagerService extends ActivityManagerNative
             configuration.setLayoutDirection(configuration.locale);
         }
 
+        final Resources resources = mContext.getResources();
+        boolean killBackgroundServices = Settings.System.getInt(
+                resolver, Settings.System.KILL_BACKGROUND_SERVICES, 0) != 0;
+        String[] whitelist = resources.getStringArray(
+                com.android.internal.R.array.background_services_whitelist);
+
         synchronized (this) {
             mDebugApp = mOrigDebugApp = debugApp;
             mWaitForDebugger = mOrigWaitForDebugger = waitForDebugger;
@@ -11508,6 +11690,14 @@ public final class ActivityManagerService extends ActivityManagerNative
             updateConfigurationLocked(configuration, null, false, true);
             if (DEBUG_CONFIGURATION) Slog.v(TAG_CONFIGURATION,
                     "Initial config: " + mConfiguration);
+            mKillBackgroundServices = killBackgroundServices;
+            mBackgroundServicesWhitelist = new ArrayList<String>();
+            if (whitelist != null) {
+                for (String item : whitelist) {
+                    mBackgroundServicesWhitelist.add(item);
+                }
+            }
+            mBackgroundServicesBlacklist = new ArrayList<String>();
         }
     }
 
@@ -11517,6 +11707,42 @@ public final class ActivityManagerService extends ActivityManagerNative
         mHasRecents = res.getBoolean(com.android.internal.R.bool.config_hasRecents);
         mThumbnailWidth = res.getDimensionPixelSize(com.android.internal.R.dimen.thumbnail_width);
         mThumbnailHeight = res.getDimensionPixelSize(com.android.internal.R.dimen.thumbnail_height);
+
+        mSettingsObserver = new SettingsObserver(mHandler);
+        final ContentResolver resolver = mContext.getContentResolver();
+        resolver.registerContentObserver(Settings.System.getUriFor(
+                Settings.System.KILL_BACKGROUND_SERVICES_LIST),
+                false, mSettingsObserver, UserHandle.USER_ALL);
+        reloadKillBackgroundServiceslist();
+    }
+
+    private final class SettingsObserver extends ContentObserver {
+        public SettingsObserver(Handler handler) {
+            super(handler);
+        }
+
+        @Override
+        public void onChange(boolean selfChange, Uri uri) {
+            if(Settings.System.getUriFor(
+                Settings.System.KILL_BACKGROUND_SERVICES_LIST).equals(uri)) {
+                reloadKillBackgroundServiceslist();
+            }
+        }
+    }
+
+    private void reloadKillBackgroundServiceslist() {
+        final ContentResolver resolver = mContext.getContentResolver();
+        String killString = Settings.System.getString(
+                resolver, Settings.System.KILL_BACKGROUND_SERVICES_LIST);
+        if (killString != null && killString.length() > 0) {
+            synchronized (mBackgroundServicesBlacklist) {
+                mBackgroundServicesBlacklist.clear();
+                String[] list = killString.split(",");
+                for (String item : list) {
+                    mBackgroundServicesBlacklist.add(item);
+                }
+            }
+        }
     }
 
     public boolean testIsSystemReady() {
@@ -11702,6 +11928,7 @@ public final class ActivityManagerService extends ActivityManagerNative
         if (ris.size() <= 0) {
             return false;
         }
+        SCHEDULE_BROADCAST = true;
 
         // If primary user, send broadcast to all available users, else just to userId
         final int[] users = userId == UserHandle.USER_OWNER ? getUsersLocked()

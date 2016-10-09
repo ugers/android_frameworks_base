@@ -129,6 +129,7 @@
 
     <!-- Listen for keyboard attachment / detachment -->
     <uses-permission android:name="android.permission.TABLET_MODE" />
+    <uses-permission android:name="android.permission.ACCESS_SURFACE_FLINGER" />
 
     <!-- Self permission for internal broadcasts. -->
     <permission android:name="com.android.systemui.permission.SELF"
@@ -170,6 +171,10 @@
         <service android:name=".ImageWallpaper"
                 android:permission="android.permission.BIND_WALLPAPER"
                 android:exported="true" />
+
+        <service android:name=".screenrecord.TakeScreenrecordService"
+            android:process=":screenrecord"
+            android:exported="false" />
 
         <receiver android:name=".BootReceiver" androidprv:primaryUserOnly="true">
             <intent-filter android:priority="1000">

@@ -2390,6 +2390,39 @@ class DatabaseHelper extends SQLiteOpenHelper {
             loadIntegerSetting(stmt, Settings.System.POINTER_SPEED,
                     R.integer.def_pointer_speed);
 
+            /* add by allwinner */
+            loadStringSetting(stmt, Settings.System.TIME_12_24,
+                    R.string.def_time_12_24);
+
+            loadIntegerSetting(stmt, Settings.System.GESTURE_SCREENSHOT_ENABLE,
+                    R.integer.def_gesture_screenshot_enable);
+
+            loadIntegerSetting(stmt, Settings.System.GESTURE_SCREENRECORD_ENABLE,
+                    R.integer.def_gesture_screenrecord_enable);
+
+            /* add by allwinner for display*/
+            loadBooleanSetting(stmt, Settings.System.DISPLAY_ADAPTION_ENABLE,
+                    R.bool.def_display_adation_enable);
+
+            loadIntegerSetting(stmt, Settings.System.BRIGHT_SYSTEM_MODE,
+                    R.integer.def_bright_system);
+
+            loadIntegerSetting(stmt, Settings.System.BRIGHTNESS_LIGHT_MODE,
+                    R.integer.def_brightness_light);
+
+            loadIntegerSetting(stmt, Settings.System.HDMI_OUTPUT_MODE,
+                    R.integer.def_hdmi_output_mode);
+
+            loadIntegerSetting(stmt, Settings.System.HDMI_FULL_SCREEN,
+                    R.integer.def_hdmi_full_screen);
+
+            loadIntegerSetting(stmt, Settings.System.HDMI_PERSENT,
+                    R.integer.def_hdmi_persent);
+
+            /* add by allwinner for kill_backfround */
+            loadBooleanSetting(stmt, Settings.System.KILL_BACKGROUND_SERVICES,
+                    R.bool.def_kill_background_services);
+
             /*
              * IMPORTANT: Do not add any more upgrade steps here as the global,
              * secure, and system settings are no longer stored in a database
@@ -2528,6 +2561,9 @@ class DatabaseHelper extends SQLiteOpenHelper {
 
             loadIntegerSetting(stmt, Settings.Secure.SLEEP_TIMEOUT,
                     R.integer.def_sleep_timeout);
+
+            loadIntegerSetting(stmt, Settings.Secure.DEFAULT_ENABLE_SYSTEM_PRINT_SERVICES,
+                    R.integer.def_enable_system_print_services);
 
             /*
              * IMPORTANT: Do not add any more upgrade steps here as the global,
@@ -2709,6 +2745,11 @@ class DatabaseHelper extends SQLiteOpenHelper {
                     R.bool.def_guest_user_enabled);
             loadSetting(stmt, Settings.Global.ENHANCED_4G_MODE_ENABLED,
                     ImsConfig.FeatureValueConstants.ON);
+            loadIntegerSetting(stmt, Settings.Global.LOW_POWER_MODE_TRIGGER_LEVEL,
+                    R.integer.def_low_power_mode_trigger_level);
+
+			loadStringSetting(stmt, Settings.Global.CAPTIVE_PORTAL_SERVER,
+				R.string.def_captive_portal_server);
 
             /*
              * IMPORTANT: Do not add any more upgrade steps here as the global,

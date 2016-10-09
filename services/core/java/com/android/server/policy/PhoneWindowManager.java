@@ -1205,6 +1205,13 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         }
     };
 
+    private final Runnable mScreenrecordRunnable = new Runnable() {
+        @Override
+        public void run() {
+            takeScreenrecord();
+        }
+    };
+
     @Override
     public void showGlobalActions() {
         mHandler.removeMessages(MSG_DISPATCH_SHOW_GLOBAL_ACTIONS);
@@ -1528,6 +1535,24 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     @Override
                     public void onUpOrCancel() {
                         mOrientationListener.onTouchEnd();
+                    }
+					
+					@Override
+                    public void onSweepFromRight(int pointCount) {
+                        switch(pointCount){
+                        case 2:
+                            if(Settings.System.getIntForUser(mContext.getContentResolver(),
+                                Settings.System.GESTURE_SCREENSHOT_ENABLE, 0, UserHandle.USER_CURRENT) == 1)
+                                mHandler.post(mScreenshotRunnable);
+                            break;
+                        case 3:
+                            if (Settings.System.getIntForUser(mContext.getContentResolver(),
+                                Settings.System.GESTURE_SCREENRECORD_ENABLE, 0, UserHandle.USER_CURRENT) == 1)
+                                mHandler.post(mScreenrecordRunnable);
+                            break;
+                        default:
+                            break;
+                        }
                     }
                 });
         mImmersiveModeConfirmation = new ImmersiveModeConfirmation(mContext);
@@ -2731,7 +2756,13 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                     return -1;
                 }
 
-                handleShortPressOnHome();
+                // handleShortPressOnHome();
+                if (SystemProperties.getInt("debug.ignore_home_key", 0) == 1) {
+                    return 0;
+                } else {
+                    // Go home!
+                    handleShortPressOnHome();
+                }
                 return -1;
             }
 
@@ -4882,6 +4913,34 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         }
     }
 
+    final Object mScreenrecordLock = new Object();
+
+    // Assume this is called from the Handler thread.
+    private void takeScreenrecord() {
+        synchronized (mScreenrecordLock) {
+            ComponentName cn = new ComponentName("com.android.systemui",
+                    "com.android.systemui.screenrecord.TakeScreenrecordService");
+            Intent intent = new Intent();
+            intent.setComponent(cn);
+            ServiceConnection conn = new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName name, IBinder service) {
+                    synchronized (mScreenrecordLock) {
+                        Messenger messenger = new Messenger(service);
+                        Message msg = Message.obtain(null, 1);
+                        try {
+                            messenger.send(msg);
+                        } catch (RemoteException e) {
+                        }
+                    }
+                }
+                @Override
+                public void onServiceDisconnected(ComponentName name) {}
+            };
+            mContext.bindServiceAsUser(intent, conn, Context.BIND_AUTO_CREATE, UserHandle.CURRENT);
+        }
+    }
+
     /** {@inheritDoc} */
     @Override
     public int interceptKeyBeforeQueueing(KeyEvent event, int policyFlags) {
@@ -5459,6 +5518,10 @@ public class PhoneWindowManager implements WindowManagerPolicy {
         synchronized (mWindowManagerFuncs.getWindowManagerLock()) {
             if (!isUserSetupComplete()) {
                 // Swipe-up for navigation bar is disabled during setup
+                return;
+            }
+            if (SystemProperties.getInt("debug.always_full_screen", 0) == 1) {
+                // Swipe-up for navigation bar is disabled during debug
                 return;
             }
             boolean sb = mStatusBarController.checkShowTransientBarLw();

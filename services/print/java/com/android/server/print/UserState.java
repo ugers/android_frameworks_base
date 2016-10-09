@@ -125,8 +125,12 @@ final class UserState implements PrintSpoolerCallbacks, PrintServiceCallbacks {
         mLock = lock;
         mSpooler = new RemotePrintSpooler(context, userId, this);
         mHandler = new UserStateHandler(context.getMainLooper());
+        int isSysPrintServiceDefEn = Settings.Secure.getIntForUser(context.getContentResolver(),
+                            Settings.Secure.DEFAULT_ENABLE_SYSTEM_PRINT_SERVICES, 1, mUserId);
         synchronized (mLock) {
-            enableSystemPrintServicesLocked();
+            if (isSysPrintServiceDefEn == 1) {
+                enableSystemPrintServicesLocked();
+            }
             onConfigurationChangedLocked();
         }
     }

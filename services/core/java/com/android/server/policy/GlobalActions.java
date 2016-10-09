@@ -101,6 +101,7 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
     private static final String GLOBAL_ACTION_KEY_LOCKDOWN = "lockdown";
     private static final String GLOBAL_ACTION_KEY_VOICEASSIST = "voiceassist";
     private static final String GLOBAL_ACTION_KEY_ASSIST = "assist";
+    private static final String GLOBAL_ACTION_KEY_REBOOT = "reboot";
 
     private final Context mContext;
     private final WindowManagerFuncs mWindowManagerFuncs;
@@ -273,6 +274,8 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
             }
             if (GLOBAL_ACTION_KEY_POWER.equals(actionKey)) {
                 mItems.add(new PowerAction());
+            } else if (GLOBAL_ACTION_KEY_REBOOT.equals(actionKey)) {
+                mItems.add(getRebootAction());
             } else if (GLOBAL_ACTION_KEY_AIRPLANE.equals(actionKey)) {
                 mItems.add(mAirplaneModeOn);
             } else if (GLOBAL_ACTION_KEY_BUGREPORT.equals(actionKey)) {
@@ -365,6 +368,30 @@ class GlobalActions implements DialogInterface.OnDismissListener, DialogInterfac
             // shutdown by making sure radio and power are handled accordingly.
             mWindowManagerFuncs.shutdown(false /* confirm */);
         }
+    }
+
+   private Action getRebootAction () {
+        return new SinglePressAction(
+                    com.android.internal.R.drawable.ic_lock_reboot,
+                    R.string.global_action_reboot) {
+
+            public void onPress() {
+                // reboot
+                mWindowManagerFuncs.reboot("Global Action Reboot!!", true);
+            }
+
+            public boolean onLongPress() {
+                return false;
+            }
+
+            public boolean showDuringKeyguard() {
+                return true;
+            }
+
+            public boolean showBeforeProvisioning() {
+                return false;
+            }
+        };
     }
 
     private Action getBugReportAction() {

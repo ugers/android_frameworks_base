@@ -153,6 +153,8 @@ import com.android.systemui.statusbar.policy.SecurityControllerImpl;
 import com.android.systemui.statusbar.policy.UserInfoController;
 import com.android.systemui.statusbar.policy.UserSwitcherController;
 import com.android.systemui.statusbar.policy.ZenModeController;
+import com.android.systemui.statusbar.policy.ScreenrecordController;
+import com.android.systemui.statusbar.policy.ScreenrecordControllerImpl;
 import com.android.systemui.statusbar.stack.NotificationStackScrollLayout;
 import com.android.systemui.statusbar.stack.NotificationStackScrollLayout.OnChildLocationsChangedListener;
 import com.android.systemui.statusbar.stack.StackStateAnimator;
@@ -271,6 +273,7 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
     FlashlightController mFlashlightController;
     UserSwitcherController mUserSwitcherController;
     NextAlarmController mNextAlarmController;
+    ScreenrecordController mScreenRecordController;
     KeyguardMonitor mKeyguardMonitor;
     BrightnessMirrorController mBrightnessMirrorController;
     AccessibilityController mAccessibilityController;
@@ -871,6 +874,7 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
         mAccessibilityController = new AccessibilityController(mContext);
         mKeyguardBottomArea.setAccessibilityController(mAccessibilityController);
         mNextAlarmController = new NextAlarmController(mContext);
+		mScreenRecordController = new ScreenrecordControllerImpl(mContext);
         mKeyguardMonitor = new KeyguardMonitor(mContext);
         if (UserSwitcherController.isUserSwitcherAvailable(UserManager.get(mContext))) {
             mUserSwitcherController = new UserSwitcherController(mContext, mKeyguardMonitor,
@@ -889,7 +893,7 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
                     mNetworkController, mZenModeController, mHotspotController,
                     mCastController, mFlashlightController,
                     mUserSwitcherController, mKeyguardMonitor,
-                    mSecurityController);
+                    mSecurityController, mScreenRecordController);
             mQSPanel.setHost(qsh);
             mQSPanel.setTiles(qsh.getTiles());
             mBrightnessMirrorController = new BrightnessMirrorController(mStatusBarWindow);

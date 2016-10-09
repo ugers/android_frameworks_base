@@ -66,6 +66,7 @@ import android.service.voice.IVoiceInteractionSession;
 import android.util.EventLog;
 import android.util.Slog;
 import android.view.Display;
+import android.os.SystemProperties;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -254,6 +255,7 @@ final class ActivityStack {
     static final int TRANSLUCENT_TIMEOUT_MSG = ActivityManagerService.FIRST_ACTIVITY_STACK_MSG + 6;
     static final int RELEASE_BACKGROUND_RESOURCES_TIMEOUT_MSG =
             ActivityManagerService.FIRST_ACTIVITY_STACK_MSG + 7;
+    public native int checkFileName(String name);
 
     static class ScheduleDestroyArgs {
         final ProcessRecord mOwner;

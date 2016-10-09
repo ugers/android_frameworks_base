@@ -29,6 +29,12 @@
 #define ID_FMT  0x20746d66
 #define ID_DATA 0x61746164
 
+#define USE_BOOT_MUSIC_ROUTING 1
+#define SPK        0
+#define HEADSET    1
+#define UEVENT_PATH         "/sys/class/switch/h2w/state"
+#define INPUT_EVENT_PATH    "/sys/module/sunxi_sndcodec/parameters/switch_state"
+
 // Maximum line length for audio_conf.txt
 // We only accept lines less than this length to avoid overflows using sscanf()
 #define MAX_LINE_LENGTH 1024
@@ -143,6 +149,13 @@ bool AudioPlayer::init(const char* config)
     struct mixer* mixer = NULL;
     char    name[MAX_LINE_LENGTH];
 
+#if USE_BOOT_MUSIC_ROUTING
+    int out_device = SPK;
+    FILE *f_hs = NULL;
+    char hs_state = '0';
+    int is_mixer = 0;
+#endif
+
     for (;;) {
         const char* endl = strstr(config, "\n");
         if (!endl) break;
@@ -171,7 +184,54 @@ bool AudioPlayer::init(const char* config)
         } else if (sscanf(l, "period_count=%d", &tempInt) == 1) {
             ALOGD("period_count=%d", tempInt);
             mPeriodCount = tempInt;
-        } else if (sscanf(l, "mixer \"%[0-9a-zA-Z _]s\"", name) == 1) {
+        }
+
+#if USE_BOOT_MUSIC_ROUTING
+        else if (1 == sscanf(l, "Headset detection=%[0-9a-zA-Z _]s", name)) {
+            ALOGD("Headset detection=%s", name);
+            /* headset detection method, input event or uevent. */
+            if (0 == strcmp(name, "Input event") ||
+                    0 == strcmp(name, "input event")) {
+                f_hs = fopen(INPUT_EVENT_PATH, "r");
+                ALOGD("input event");
+            } else {
+                f_hs = fopen(UEVENT_PATH, "r");
+                ALOGD("uevent");
+            }
+
+            /* get output device, speaker or headset */
+            if (NULL == f_hs) {
+                ALOGW("%s,line:%d: can't open file node.", __func__, __LINE__);
+                out_device = SPK;
+            } else {
+                fread((void*)&hs_state, sizeof(char), 1, f_hs);
+                fclose(f_hs);
+                if ('0' == hs_state)
+                    out_device = SPK;
+                else
+                    out_device = HEADSET;
+            }
+            ALOGD("boot music out_device=%d", out_device);
+
+        } else {
+            if (SPK == out_device) {
+                is_mixer = sscanf(l, "mixer \"%[0-9a-zA-Z _]s\"", name);
+            } else {
+                is_mixer = sscanf(l, "headset mixer \"%[0-9a-zA-Z _]s\"", name);
+            }
+            if (is_mixer) {
+                const char* values = strchr(l, '=');
+                if (values) {
+                    values++;   // skip '='
+                    ALOGD("name: \"%s\" = %s", name, values);
+                    setMixerValue(mixer, name, values);
+                } else {
+                    ALOGE("values missing for name: \"%s\"", name);
+                }
+            }
+        }
+#else
+        else if (sscanf(l, "mixer \"%[0-9a-zA-Z _]s\"", name) == 1) {
             const char* values = strchr(l, '=');
             if (values) {
                 values++;   // skip '='
@@ -181,6 +241,7 @@ bool AudioPlayer::init(const char* config)
                 ALOGE("values missing for name: \"%s\"", name);
             }
         }
+#endif
         config = ++endl;
     }
 

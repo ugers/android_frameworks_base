@@ -1339,7 +1339,7 @@ public class Tethering extends BaseNetworkObserver {
                         // Find the interface with the default IPv4 route. It may be the
                         // interface described by linkProperties, or one of the interfaces
                         // stacked on top of it.
-                        Log.i(TAG, "Finding IPv4 upstream interface on: " + linkProperties);
+                        /*Log.i(TAG, "Finding IPv4 upstream interface on: " + linkProperties);
                         RouteInfo ipv4Default = RouteInfo.selectBestRoute(
                             linkProperties.getAllRoutes(), Inet4Address.ANY);
                         if (ipv4Default != null) {
@@ -1347,7 +1347,8 @@ public class Tethering extends BaseNetworkObserver {
                             Log.i(TAG, "Found interface " + ipv4Default.getInterface());
                         } else {
                             Log.i(TAG, "No IPv4 upstream interface, giving up.");
-                        }
+                        }*/
+                        iface = linkProperties.getInterfaceName();
                     }
 
                     if (iface != null) {

@@ -47,6 +47,7 @@ import com.android.server.am.ActivityManagerService.ItemMatcher;
 import com.android.server.am.ActivityManagerService.NeededUriGrants;
 
 import android.app.ActivityManager;
+import android.app.ActivityManager.RunningTaskInfo;
 import android.app.AppGlobals;
 import android.app.IApplicationThread;
 import android.app.IServiceConnection;
@@ -303,9 +304,30 @@ public final class ActiveServices {
         return getServiceMap(callingUser).mServicesByName;
     }
 
+    private boolean skipService(Intent service) {
+        String packageName = service.getPackage();
+        if (packageName == null && service.getComponent() != null) {
+            packageName = service.getComponent().getPackageName();
+        }
+        if (packageName != null) {
+            if (!mAm.allowBackgroundTask(packageName)) {
+                if (DEBUG_SERVICE) Slog.i(TAG, "not android or google service " + service);
+                List<RunningTaskInfo> list = mAm.getTasks(5, 0);
+                for (RunningTaskInfo info : list) {
+                    if (packageName.equals(info.topActivity.getPackageName()))
+                        return false;
+                }
+                if (DEBUG_SERVICE) Slog.i(TAG, "skipService " + service + " because of activity not started!");
+                return true;
+            }
+        }
+        return false;
+    }
+
     ComponentName startServiceLocked(IApplicationThread caller, Intent service, String resolvedType,
             int callingPid, int callingUid, String callingPackage, int userId)
             throws TransactionTooLargeException {
+        if (skipService(service)) return null;
         if (DEBUG_DELAYED_STARTS) Slog.v(TAG_SERVICE, "startService: " + service
                 + " type=" + resolvedType + " args=" + service.getExtras());
 
@@ -697,6 +719,7 @@ public final class ActiveServices {
     int bindServiceLocked(IApplicationThread caller, IBinder token, Intent service,
             String resolvedType, IServiceConnection connection, int flags,
             String callingPackage, int userId) throws TransactionTooLargeException {
+        if (skipService(service)) return 0;
         if (DEBUG_SERVICE) Slog.v(TAG_SERVICE, "bindService: " + service
                 + " type=" + resolvedType + " conn=" + connection.asBinder()
                 + " flags=0x" + Integer.toHexString(flags));

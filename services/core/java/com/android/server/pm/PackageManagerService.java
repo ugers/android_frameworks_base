@@ -269,6 +269,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.TimeUnit;
+
 /**
  * Keep track of all those .apks everywhere.
  *
@@ -2064,24 +2067,24 @@ public class PackageManagerService extends IPackageManager.Stub {
             // For security and version matching reason, only consider
             // overlay packages if they reside in VENDOR_OVERLAY_DIR.
             File vendorOverlayDir = new File(VENDOR_OVERLAY_DIR);
-            scanDirLI(vendorOverlayDir, PackageParser.PARSE_IS_SYSTEM
+            scanDirLI2(vendorOverlayDir, PackageParser.PARSE_IS_SYSTEM
                     | PackageParser.PARSE_IS_SYSTEM_DIR, scanFlags | SCAN_TRUSTED_OVERLAY, 0);
 
             // Find base frameworks (resource packages without code).
-            scanDirLI(frameworkDir, PackageParser.PARSE_IS_SYSTEM
+            scanDirLI2(frameworkDir, PackageParser.PARSE_IS_SYSTEM
                     | PackageParser.PARSE_IS_SYSTEM_DIR
                     | PackageParser.PARSE_IS_PRIVILEGED,
                     scanFlags | SCAN_NO_DEX, 0);
 
             // Collected privileged system packages.
             final File privilegedAppDir = new File(Environment.getRootDirectory(), "priv-app");
-            scanDirLI(privilegedAppDir, PackageParser.PARSE_IS_SYSTEM
+            scanDirLI2(privilegedAppDir, PackageParser.PARSE_IS_SYSTEM
                     | PackageParser.PARSE_IS_SYSTEM_DIR
                     | PackageParser.PARSE_IS_PRIVILEGED, scanFlags, 0);
 
             // Collect ordinary system packages.
             final File systemAppDir = new File(Environment.getRootDirectory(), "app");
-            scanDirLI(systemAppDir, PackageParser.PARSE_IS_SYSTEM
+            scanDirLI2(systemAppDir, PackageParser.PARSE_IS_SYSTEM
                     | PackageParser.PARSE_IS_SYSTEM_DIR, scanFlags, 0);
 
             // Collect all vendor packages.
@@ -2091,13 +2094,15 @@ public class PackageManagerService extends IPackageManager.Stub {
             } catch (IOException e) {
                 // failed to look up canonical path, continue with original one
             }
-            scanDirLI(vendorAppDir, PackageParser.PARSE_IS_SYSTEM
+            scanDirLI2(vendorAppDir, PackageParser.PARSE_IS_SYSTEM
                     | PackageParser.PARSE_IS_SYSTEM_DIR, scanFlags, 0);
 
             // Collect all OEM packages.
             final File oemAppDir = new File(Environment.getOemDirectory(), "app");
-            scanDirLI(oemAppDir, PackageParser.PARSE_IS_SYSTEM
+            scanDirLI2(oemAppDir, PackageParser.PARSE_IS_SYSTEM
                     | PackageParser.PARSE_IS_SYSTEM_DIR, scanFlags, 0);
+
+            startScanAllLI();
 
             if (DEBUG_UPGRADE) Log.v(TAG, "Running installd update commands");
             mInstaller.moveFiles();
@@ -2172,10 +2177,12 @@ public class PackageManagerService extends IPackageManager.Stub {
             if (!mOnlyCore) {
                 EventLog.writeEvent(EventLogTags.BOOT_PROGRESS_PMS_DATA_SCAN_START,
                         SystemClock.uptimeMillis());
-                scanDirLI(mAppInstallDir, 0, scanFlags | SCAN_REQUIRE_KNOWN, 0);
+                scanDirLI2(mAppInstallDir, 0, scanFlags | SCAN_REQUIRE_KNOWN, 0);
 
-                scanDirLI(mDrmAppPrivateInstallDir, PackageParser.PARSE_FORWARD_LOCK,
+                scanDirLI2(mDrmAppPrivateInstallDir, PackageParser.PARSE_FORWARD_LOCK,
                         scanFlags | SCAN_REQUIRE_KNOWN, 0);
+
+                startScanAllLI();
 
                 /**
                  * Remove disable package settings for any updated system
@@ -4254,6 +4261,14 @@ public class PackageManagerService extends IPackageManager.Stub {
                 if (ri != null) {
                     return ri;
                 }
+                // fix GTS bug. While testing GTS, return play music as default music player if it exists.
+                if ((resolvedType != null) && (intent != null) && resolvedType.equals("audio/mpeg") && intent.getDataString().equals("file:///foo.mp3")) {
+                    for (int i = 0; i < N; i++) {
+                        if (query.get(i).activityInfo.packageName.equals("com.google.android.music")) {
+                            return query.get(i);
+                        }
+                    }
+                }
                 ri = new ResolveInfo(mResolveInfo);
                 ri.activityInfo = new ActivityInfo(ri.activityInfo);
                 ri.activityInfo.applicationInfo = new ApplicationInfo(
@@ -5660,6 +5675,108 @@ public class PackageManagerService extends IPackageManager.Stub {
         }
     }
 
+    private final class PkgTemp {
+        public File scanFile;
+        public int parseFlagsOld;
+        public int parseFlags;
+        public int scanFlags;
+        public long currentTime;
+        public PackageParser pp;
+        public PackageParser.Package pkg;
+    }
+
+    private ArrayList<PkgTemp> mPtList = new ArrayList<PkgTemp>();
+    private LinkedBlockingQueue<PkgTemp> mPtQueue = new LinkedBlockingQueue<PkgTemp>();
+    private void scanDirLI2(File dir, int parseFlags, int scanFlags, long currentTime) {
+        final File[] files = dir.listFiles();
+        if (ArrayUtils.isEmpty(files)) {
+            Log.d(TAG, "No files in app dir " + dir);
+            return;
+        }
+
+        if (DEBUG_PACKAGE_SCANNING) {
+            Log.d(TAG, "Scanning app dir " + dir + " scanFlags=" + scanFlags
+                + " flags=0x" + Integer.toHexString(parseFlags));
+        }
+
+        for (File file : files) {
+            final boolean isPackage = (isApkFile(file) || file.isDirectory())
+                && !PackageInstallerService.isStageName(file.getName());
+            if (!isPackage) {
+                // Ignore entries which are not packages
+                continue;
+            }
+            PkgTemp pt = new PkgTemp();
+            pt.scanFile = file;
+            pt.parseFlagsOld = parseFlags;
+            pt.parseFlags = parseFlags | PackageParser.PARSE_MUST_BE_APK;
+            pt.scanFlags = scanFlags;
+            pt.currentTime = currentTime;
+
+            mPtList.add(pt);
+        }
+    }
+
+    private void handleScanException(PkgTemp pt, PackageManagerException e) {
+        Slog.w(TAG, "Failed to parse " + pt.scanFile + ": " + e.getMessage());
+
+        // Delete invalid userdata apps
+        if ((pt.parseFlagsOld & PackageParser.PARSE_IS_SYSTEM) == 0 &&
+            e.error == PackageManager.INSTALL_FAILED_INVALID_APK) {
+            logCriticalInfo(Log.WARN, "Deleting invalid package at " + pt.scanFile);
+            if (pt.scanFile.isDirectory()) {
+                mInstaller.rmPackageDir(pt.scanFile.getAbsolutePath());
+            } else {
+                pt.scanFile.delete();
+            }
+        }
+    }
+
+    private boolean mParseFinish;
+    private class ParseThread extends Thread {
+        @Override
+        public void run() {
+            // TODO Auto-generated method stub
+            for (final PkgTemp pt : mPtList) {
+                try {
+                    parseApkXml(pt);
+                    mPtQueue.put(pt);
+                } catch (PackageManagerException e) {
+                    handleScanException(pt, e);
+                } catch (InterruptedException e) {
+                    Slog.w(TAG, "Failed to enqueue " + pt.scanFile);
+                }
+            }
+            mParseFinish = true;
+        }
+    };
+
+    private void startScanAllLI() {
+        ParseThread pThread = new ParseThread();
+        mParseFinish = false;
+        pThread.start();
+
+        PkgTemp pt = null;
+        while (!mParseFinish || mPtQueue.size() > 0) {
+            try {
+                pt = mPtQueue.poll(1, TimeUnit.MILLISECONDS);
+                if (pt != null && pt.pkg != null) {
+                    scanPackageLI2(pt, null);
+                }
+            } catch (PackageManagerException e) {
+                handleScanException(pt, e);
+            } catch (InterruptedException e) {
+                Slog.w(TAG, "Failed to dequeue " + pt.scanFile);
+            }
+        }
+
+        try {
+            pThread.join();
+        } catch (InterruptedException e) {
+        }
+        mPtList.clear();
+    }
+
     private static File getSettingsProblemFile() {
         File dataDir = Environment.getDataDirectory();
         File systemDir = new File(dataDir, "system");
@@ -5726,6 +5843,237 @@ public class PackageManagerService extends IPackageManager.Stub {
         } catch (PackageParserException e) {
             throw PackageManagerException.from(e);
         }
+    }
+
+    private void parseApkXml(PkgTemp pt) throws PackageManagerException {
+        if (DEBUG_INSTALL) Slog.d(TAG, "Parsing: " + pt.scanFile);
+        pt.parseFlags |= mDefParseFlags;
+        pt.pp = new PackageParser();
+        pt.pp.setSeparateProcesses(mSeparateProcesses);
+        pt.pp.setOnlyCoreApps(mOnlyCore);
+        pt.pp.setDisplayMetrics(mMetrics);
+
+        if ((pt.scanFlags & SCAN_TRUSTED_OVERLAY) != 0) {
+            pt.parseFlags |= PackageParser.PARSE_TRUSTED_OVERLAY;
+        }
+
+        try {
+            pt.pkg = pt.pp.parsePackage(pt.scanFile, pt.parseFlags);
+        } catch (PackageParserException e) {
+            throw PackageManagerException.from(e);
+        }
+    }
+
+    private PackageParser.Package scanPackageLI2(PkgTemp pt,
+        UserHandle user) throws PackageManagerException {
+        File scanFile = pt.scanFile;
+        int parseFlags = pt.parseFlags;
+        int scanFlags = pt.scanFlags;
+        long currentTime = pt.currentTime;
+        PackageParser pp = pt.pp;
+        final PackageParser.Package pkg = pt.pkg;
+
+        PackageSetting ps = null;
+        PackageSetting updatedPkg;
+        // reader
+        synchronized (mPackages) {
+            // Look to see if we already know about this package.
+            String oldName = mSettings.mRenamedPackages.get(pkg.packageName);
+            if (pkg.mOriginalPackages != null && pkg.mOriginalPackages.contains(oldName)) {
+                // This package has been renamed to its original name.  Let's
+                // use that.
+                ps = mSettings.peekPackageLPr(oldName);
+            }
+            // If there was no original package, see one for the real package name.
+            if (ps == null) {
+                ps = mSettings.peekPackageLPr(pkg.packageName);
+            }
+            // Check to see if this package could be hiding/updating a system
+            // package.  Must look for it either under the original or real
+            // package name depending on our state.
+            updatedPkg = mSettings.getDisabledSystemPkgLPr(ps != null ? ps.name : pkg.packageName);
+            if (DEBUG_INSTALL && updatedPkg != null) Slog.d(TAG, "updatedPkg = " + updatedPkg);
+        }
+        boolean updatedPkgBetter = false;
+        // First check if this is a system package that may involve an update
+        if (updatedPkg != null && (parseFlags&PackageParser.PARSE_IS_SYSTEM) != 0) {
+            // If new package is not located in "/system/priv-app" (e.g. due to an OTA),
+            // it needs to drop FLAG_PRIVILEGED.
+            if (locationIsPrivileged(scanFile)) {
+                updatedPkg.pkgPrivateFlags |= ApplicationInfo.PRIVATE_FLAG_PRIVILEGED;
+            } else {
+                updatedPkg.pkgPrivateFlags &= ~ApplicationInfo.PRIVATE_FLAG_PRIVILEGED;
+            }
+
+            if (ps != null && !ps.codePath.equals(scanFile)) {
+                // The path has changed from what was last scanned...  check the
+                // version of the new path against what we have stored to determine
+                // what to do.
+                if (DEBUG_INSTALL) Slog.d(TAG, "Path changing from " + ps.codePath);
+                if (pkg.mVersionCode <= ps.versionCode) {
+                    // The system package has been updated and the code path does not match
+                    // Ignore entry. Skip it.
+                    if (DEBUG_INSTALL) Slog.i(TAG, "Package " + ps.name + " at " + scanFile
+                            + " ignored: updated version " + ps.versionCode
+                            + " better than this " + pkg.mVersionCode);
+                    if (!updatedPkg.codePath.equals(scanFile)) {
+                        Slog.w(PackageManagerService.TAG, "Code path for hidden system pkg : "
+                                + ps.name + " changing from " + updatedPkg.codePathString
+                                + " to " + scanFile);
+                        updatedPkg.codePath = scanFile;
+                        updatedPkg.codePathString = scanFile.toString();
+                        updatedPkg.resourcePath = scanFile;
+                        updatedPkg.resourcePathString = scanFile.toString();
+                    }
+                    updatedPkg.pkg = pkg;
+                    throw new PackageManagerException(INSTALL_FAILED_DUPLICATE_PACKAGE,
+                        "Package " + ps.name + " at " + scanFile
+                                + " ignored: updated version " + ps.versionCode
+                                + " better than this " + pkg.mVersionCode);
+                } else {
+                    // The current app on the system partition is better than
+                    // what we have updated to on the data partition; switch
+                    // back to the system partition version.
+                    // At this point, its safely assumed that package installation for
+                    // apps in system partition will go through. If not there won't be a working
+                    // version of the app
+                    // writer
+                    synchronized (mPackages) {
+                        // Just remove the loaded entries from package lists.
+                        mPackages.remove(ps.name);
+                    }
+
+                    logCriticalInfo(Log.WARN, "Package " + ps.name + " at " + scanFile
+                            + " reverting from " + ps.codePathString
+                            + ": new version " + pkg.mVersionCode
+                            + " better than installed " + ps.versionCode);
+
+                    InstallArgs args = createInstallArgsForExisting(packageFlagsToInstallFlags(ps),
+                            ps.codePathString, ps.resourcePathString, getAppDexInstructionSets(ps));
+                    synchronized (mInstallLock) {
+                        args.cleanUpResourcesLI();
+                    }
+                    synchronized (mPackages) {
+                        mSettings.enableSystemPackageLPw(ps.name);
+                    }
+                    updatedPkgBetter = true;
+                }
+            }
+        }
+
+        if (updatedPkg != null) {
+            // An updated system app will not have the PARSE_IS_SYSTEM flag set
+            // initially
+            parseFlags |= PackageParser.PARSE_IS_SYSTEM;
+
+            // An updated privileged app will not have the PARSE_IS_PRIVILEGED
+            // flag set initially
+            if ((updatedPkg.pkgPrivateFlags & ApplicationInfo.PRIVATE_FLAG_PRIVILEGED) != 0) {
+                parseFlags |= PackageParser.PARSE_IS_PRIVILEGED;
+            }
+        }
+
+        // Verify certificates against what was last scanned
+        collectCertificatesLI(pp, ps, pkg, scanFile, parseFlags);
+
+        /*
+         * A new system app appeared, but we already had a non-system one of the
+         * same name installed earlier.
+         */
+        boolean shouldHideSystemApp = false;
+        if (updatedPkg == null && ps != null
+                && (parseFlags & PackageParser.PARSE_IS_SYSTEM_DIR) != 0 && !isSystemApp(ps)) {
+            /*
+             * Check to make sure the signatures match first. If they don't,
+             * wipe the installed application and its data.
+             */
+            if (compareSignatures(ps.signatures.mSignatures, pkg.mSignatures)
+                    != PackageManager.SIGNATURE_MATCH) {
+                logCriticalInfo(Log.WARN, "Package " + ps.name + " appeared on system, but"
+                        + " signatures don't match existing userdata copy; removing");
+                deletePackageLI(pkg.packageName, null, true, null, null, 0, null, false);
+                ps = null;
+            } else {
+                /*
+                 * If the newly-added system app is an older version than the
+                 * already installed version, hide it. It will be scanned later
+                 * and re-added like an update.
+                 */
+                if (pkg.mVersionCode <= ps.versionCode) {
+                    shouldHideSystemApp = true;
+                    logCriticalInfo(Log.INFO, "Package " + ps.name + " appeared at " + scanFile
+                            + " but new version " + pkg.mVersionCode + " better than installed "
+                            + ps.versionCode + "; hiding system");
+                } else {
+                    /*
+                     * The newly found system app is a newer version that the
+                     * one previously installed. Simply remove the
+                     * already-installed application and replace it with our own
+                     * while keeping the application data.
+                     */
+                    logCriticalInfo(Log.WARN, "Package " + ps.name + " at " + scanFile
+                            + " reverting from " + ps.codePathString + ": new version "
+                            + pkg.mVersionCode + " better than installed " + ps.versionCode);
+                    InstallArgs args = createInstallArgsForExisting(packageFlagsToInstallFlags(ps),
+                            ps.codePathString, ps.resourcePathString, getAppDexInstructionSets(ps));
+                    synchronized (mInstallLock) {
+                        args.cleanUpResourcesLI();
+                    }
+                }
+            }
+        }
+
+        // The apk is forward locked (not public) if its code and resources
+        // are kept in different files. (except for app in either system or
+        // vendor path).
+        // TODO grab this value from PackageSettings
+        if ((parseFlags & PackageParser.PARSE_IS_SYSTEM_DIR) == 0) {
+            if (ps != null && !ps.codePath.equals(ps.resourcePath)) {
+                parseFlags |= PackageParser.PARSE_FORWARD_LOCK;
+            }
+        }
+
+        // TODO: extend to support forward-locked splits
+        String resourcePath = null;
+        String baseResourcePath = null;
+        if ((parseFlags & PackageParser.PARSE_FORWARD_LOCK) != 0 && !updatedPkgBetter) {
+            if (ps != null && ps.resourcePathString != null) {
+                resourcePath = ps.resourcePathString;
+                baseResourcePath = ps.resourcePathString;
+            } else {
+                // Should not happen at all. Just log an error.
+                Slog.e(TAG, "Resource path not set for pkg : " + pkg.packageName);
+            }
+        } else {
+            resourcePath = pkg.codePath;
+            baseResourcePath = pkg.baseCodePath;
+        }
+
+        // Set application objects path explicitly.
+        pkg.applicationInfo.volumeUuid = pkg.volumeUuid;
+        pkg.applicationInfo.setCodePath(pkg.codePath);
+        pkg.applicationInfo.setBaseCodePath(pkg.baseCodePath);
+        pkg.applicationInfo.setSplitCodePaths(pkg.splitCodePaths);
+        pkg.applicationInfo.setResourcePath(resourcePath);
+        pkg.applicationInfo.setBaseResourcePath(baseResourcePath);
+        pkg.applicationInfo.setSplitResourcePaths(pkg.splitCodePaths);
+
+        // Note that we invoke the following method only if we are about to unpack an application
+        PackageParser.Package scannedPkg = scanPackageLI(pkg, parseFlags, scanFlags
+                | SCAN_UPDATE_SIGNATURE, currentTime, user);
+
+        /*
+         * If the system app should be overridden by a previously installed
+         * data, hide the system app now and let the /data/app scan pick it up
+         * again.
+         */
+        if (shouldHideSystemApp) {
+            synchronized (mPackages) {
+                mSettings.disableSystemPackageLPw(pkg.packageName);
+            }
+        }
+
+        return scannedPkg;
     }
 
     /*

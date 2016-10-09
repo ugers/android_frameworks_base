@@ -38,6 +38,8 @@ import com.android.systemui.qs.tiles.HotspotTile;
 import com.android.systemui.qs.tiles.IntentTile;
 import com.android.systemui.qs.tiles.LocationTile;
 import com.android.systemui.qs.tiles.RotationLockTile;
+import com.android.systemui.qs.tiles.ScreenrecordTile;
+import com.android.systemui.qs.tiles.ScreenshotTile;
 import com.android.systemui.qs.tiles.WifiTile;
 import com.android.systemui.statusbar.policy.BluetoothController;
 import com.android.systemui.statusbar.policy.CastController;
@@ -47,6 +49,8 @@ import com.android.systemui.statusbar.policy.KeyguardMonitor;
 import com.android.systemui.statusbar.policy.LocationController;
 import com.android.systemui.statusbar.policy.NetworkController;
 import com.android.systemui.statusbar.policy.RotationLockController;
+import com.android.systemui.statusbar.policy.ScreenrecordController;
+import com.android.systemui.statusbar.policy.ScreenrecordControllerImpl;
 import com.android.systemui.statusbar.policy.SecurityController;
 import com.android.systemui.statusbar.policy.UserSwitcherController;
 import com.android.systemui.statusbar.policy.ZenModeController;
@@ -83,6 +87,7 @@ public class QSTileHost implements QSTile.Host, Tunable {
     private final UserSwitcherController mUserSwitcherController;
     private final KeyguardMonitor mKeyguard;
     private final SecurityController mSecurity;
+    private final ScreenrecordController mScreenrecord;
 
     private Callback mCallback;
 
@@ -92,7 +97,7 @@ public class QSTileHost implements QSTile.Host, Tunable {
             ZenModeController zen, HotspotController hotspot,
             CastController cast, FlashlightController flashlight,
             UserSwitcherController userSwitcher, KeyguardMonitor keyguard,
-            SecurityController security) {
+            SecurityController security, ScreenrecordController screenrecord) {
         mContext = context;
         mStatusBar = statusBar;
         mBluetooth = bluetooth;
@@ -106,6 +111,7 @@ public class QSTileHost implements QSTile.Host, Tunable {
         mUserSwitcherController = userSwitcher;
         mKeyguard = keyguard;
         mSecurity = security;
+        mScreenrecord = screenrecord;
 
         final HandlerThread ht = new HandlerThread(QSTileHost.class.getSimpleName(),
                 Process.THREAD_PRIORITY_BACKGROUND);
@@ -213,6 +219,11 @@ public class QSTileHost implements QSTile.Host, Tunable {
     }
     
     @Override
+    public ScreenrecordController getScreenrecordController() {
+        return mScreenrecord;
+    }
+
+    @Override
     public void onTuningChanged(String key, String newValue) {
         if (!TILES_SETTING.equals(key)) {
             return;
@@ -260,6 +271,8 @@ public class QSTileHost implements QSTile.Host, Tunable {
         else if (tileSpec.equals("location")) return new LocationTile(this);
         else if (tileSpec.equals("cast")) return new CastTile(this);
         else if (tileSpec.equals("hotspot")) return new HotspotTile(this);
+        else if (tileSpec.equals("screenrecord")) return new ScreenrecordTile(this);
+        else if (tileSpec.equals("screenshot")) return new ScreenshotTile(this);
         else if (tileSpec.startsWith(IntentTile.PREFIX)) return IntentTile.create(this,tileSpec);
         else throw new IllegalArgumentException("Bad tile spec: " + tileSpec);
     }

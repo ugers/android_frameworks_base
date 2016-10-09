@@ -36,6 +36,7 @@
 #include <utils/Log.h>
 #include <utils/Looper.h>
 #include <utils/threads.h>
+#include <cutils/properties.h>
 
 #include <input/PointerController.h>
 #include <input/SpriteController.h>
@@ -1062,6 +1063,23 @@ static void nativeSetDisplayViewport(JNIEnv* /* env */, jclass /* clazz */, jlon
         jint deviceWidth, jint deviceHeight) {
     NativeInputManager* im = reinterpret_cast<NativeInputManager*>(ptr);
 
+    if(!external)
+    {
+        char property[PROPERTY_VALUE_MAX];
+        if (property_get("ro.sf.rotation", property, NULL) > 0) {
+            switch (atoi(property)) {
+                case 90:
+                    orientation = (orientation + 1) % 4;
+                    break;
+                case 180:
+                    orientation = (orientation + 2) % 4;
+                    break;
+                case 270:
+                    orientation = (orientation + 3) % 4;
+                    break;
+            }
+        }
+    }
     DisplayViewport v;
     v.displayId = displayId;
     v.orientation = orientation;
